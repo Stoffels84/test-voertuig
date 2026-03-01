@@ -97,9 +97,19 @@ app.get("/api/data", async (req, res) => {
     // List files and find the 2 most recent ones starting with yyyymmdd
     const list = await client.list(ftpDir);
     const xlsxFiles = list
-      .filter(f => f.isFile && f.name.endsWith(".xlsx") && /^\d{8}/.test(f.name))
+      .filter(f => {
+        const name = f.name.toLowerCase();
+        const matchesDate = /^\d{8}/.test(f.name);
+        const isExcel = name.endsWith(".xlsx");
+        return matchesDate && isExcel;
+      })
       .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
       .slice(0, 2);
+
+    if (xlsxFiles.length === 0) {
+      const allFiles = list.map(f => f.name).join(", ");
+      throw new Error(`Geen .xlsx bestanden gevonden die beginnen met 8 cijfers in map: ${ftpDir}. Gevonden bestanden: ${allFiles || "geen"}`);
+    }
 
     const fetchData = async (fileName: string) => {
       const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
