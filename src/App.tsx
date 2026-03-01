@@ -9,7 +9,7 @@ interface TransportData {
 export default function App() {
   const [data1, setData1] = useState<TransportData[]>([]);
   const [data2, setData2] = useState<TransportData[]>([]);
-  const [fileNames, setFileNames] = useState<string[]>([]);
+  const [fileNames, setFileNames] = useState<{ name: string; modifiedAt?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
@@ -57,6 +57,22 @@ export default function App() {
   }, []);
 
   const DeLijnYellow = "#FFD200";
+
+  const formatFileDate = (fileName: string) => {
+    if (!fileName) return '';
+    const match = fileName.match(/^(\d{4})(\d{2})(\d{2})/);
+    if (match) {
+      const [_, yyyy, mm, dd] = match;
+      return `${dd}/${mm}/${yyyy}`;
+    }
+    return fileName;
+  };
+
+  const formatModifiedTime = (modifiedAt?: string) => {
+    if (!modifiedAt) return '';
+    const date = new Date(modifiedAt);
+    return `Laatst aangepast: ${date.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`;
+  };
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-900 pb-12">
@@ -167,7 +183,7 @@ export default function App() {
         </div>
 
         <div className="space-y-8 sm:space-y-12">
-          {searchTerm ? (
+          {searchTerm.length >= 4 ? (
             <>
               {/* Section 1 */}
               <section>
@@ -178,7 +194,16 @@ export default function App() {
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Vandaag</h2>
-                      <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">{fileNames[0] || 'Geen bestand gevonden'}</p>
+                      <div className="flex flex-col">
+                        <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                          {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
+                        </p>
+                        {fileNames[0]?.modifiedAt && (
+                          <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                            {formatModifiedTime(fileNames[0].modifiedAt)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -241,7 +266,16 @@ export default function App() {
                     </div>
                     <div className="min-w-0">
                       <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Gisteren</h2>
-                      <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">{fileNames[1] || 'Geen tweede bestand gevonden'}</p>
+                      <div className="flex flex-col">
+                        <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">
+                          {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen tweede bestand gevonden'}
+                        </p>
+                        {fileNames[1]?.modifiedAt && (
+                          <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                            {formatModifiedTime(fileNames[1].modifiedAt)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -294,9 +328,13 @@ export default function App() {
               <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                 <Search className="w-10 h-10 text-gray-300" />
               </div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-gray-400 mb-2">Start met zoeken</h2>
+              <h2 className="text-xl font-black uppercase tracking-tight text-gray-400 mb-2">
+                {searchTerm.length > 0 ? 'Typ nog even verder...' : 'Start met zoeken'}
+              </h2>
               <p className="text-sm font-bold text-gray-400 max-w-xs leading-relaxed">
-                Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.
+                {searchTerm.length > 0 
+                  ? `Voer minimaal 4 cijfers in om te zoeken. Je hebt er nu ${searchTerm.length}.`
+                  : 'Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.'}
               </p>
             </div>
           )}

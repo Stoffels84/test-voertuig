@@ -175,7 +175,7 @@ app.get("/api/data", async (req, res) => {
       success: true, 
       data1, 
       data2, 
-      fileNames: xlsxFiles.map(f => f.name) 
+      fileNames: xlsxFiles.map(f => ({ name: f.name, modifiedAt: f.modifiedAt }))
     });
   } catch (err: any) {
     console.error("FTP Error:", err);
