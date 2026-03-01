@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -16,6 +16,7 @@ export default function App() {
   
   const [statusLoading, setStatusLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{ success: boolean; message: string } | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const checkStatus = async () => {
     setStatusLoading(true);
@@ -149,6 +150,22 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Search Bar */}
+        <div className="mb-6">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-[#FFD200] transition-colors" />
+            </div>
+            <input
+              type="text"
+              placeholder="Zoek op personeelnummer..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="block w-full pl-11 pr-4 py-3.5 bg-white border border-black/5 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:text-gray-400 placeholder:font-medium"
+            />
+          </div>
+        </div>
+
         <div className="space-y-8 sm:space-y-12">
           {/* Section 1 */}
           <section>
@@ -177,7 +194,9 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5">
-                    {data1.map((row, i) => (
+                    {data1
+                      .filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((row, i) => (
                       <motion.tr 
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -192,7 +211,7 @@ export default function App() {
                         ))}
                       </motion.tr>
                     ))}
-                    {data1.length === 0 && !loading && (
+                    {data1.filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                       <tr>
                         <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                           Geen gegevens gevonden.
@@ -238,7 +257,9 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5">
-                    {data2.map((row, i) => (
+                    {data2
+                      .filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((row, i) => (
                       <motion.tr 
                         initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -253,7 +274,7 @@ export default function App() {
                         ))}
                       </motion.tr>
                     ))}
-                    {data2.length === 0 && !loading && (
+                    {data2.filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                       <tr>
                         <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                           Geen gegevens gevonden.

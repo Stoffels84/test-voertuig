@@ -72,7 +72,7 @@ app.get("/api/data", async (req, res) => {
         "richting": "Zwijnaarde",
         "Loop": "101",
         "Lijn": "1",
-        "personeelsnummer": "12345",
+        "personeelnummer": "12345",
         "naam": "Jan Janssens",
         "voertuig": "T01",
         "wissel": "Nee"
@@ -80,8 +80,8 @@ app.get("/api/data", async (req, res) => {
       return res.json({
         success: true,
         isMock: true,
-        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2" }],
-        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4" }],
+        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890" }],
+        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223" }],
         fileNames: ["20240301_dienst.xlsx", "20240229_dienst.xlsx"]
       });
     }
@@ -121,7 +121,7 @@ app.get("/api/data", async (req, res) => {
         }
       });
 
-      await (client as any).downloadToStream(writable, filePath);
+      await client.downloadTo(writable, filePath);
       const buffer = Buffer.concat(chunks);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       
@@ -130,11 +130,39 @@ app.get("/api/data", async (req, res) => {
       const worksheet = workbook.Sheets[sheetName];
       const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-      // Filter columns
+      // Helper to format Excel time (decimal) to HH:mm
+      const formatExcelTime = (val: any) => {
+        if (typeof val !== 'number') return val || "";
+        const totalMinutes = Math.round(val * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+      };
+
+      // Filter columns and handle renaming/formatting
       return rawData.map(row => {
         const filteredRow: any = {};
+        
+        // Find keys in row case-insensitively
+        const findValue = (targetKey: string) => {
+          const key = Object.keys(row).find(k => k.toLowerCase().trim() === targetKey.toLowerCase().trim());
+          return key ? row[key] : undefined;
+        };
+
         requestedColumns.forEach(col => {
-          filteredRow[col] = row[col] || "";
+          const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
+          let value = findValue(col);
+          
+          // If not found by original name, try the target name too
+          if (value === undefined && targetKey !== col) {
+            value = findValue(targetKey);
+          }
+
+          if (col === "Uur") {
+            filteredRow[targetKey] = formatExcelTime(value);
+          } else {
+            filteredRow[targetKey] = value || "";
+          }
         });
         return filteredRow;
       });
