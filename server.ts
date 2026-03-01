@@ -19,7 +19,9 @@ app.get("/api/status", async (req, res) => {
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
     const port = parseInt(process.env.FTP_PORT || "21");
-    const secure = process.env.FTP_SECURE === "true" || process.env.FTP_SECURE === "implicit" ? process.env.FTP_SECURE : false;
+    let secure: boolean | "implicit" = false;
+    if (process.env.FTP_SECURE === "true") secure = true;
+    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
 
     if (!host || !user || !password) {
       return res.json({ success: false, message: "FTP inloggegevens ontbreken in Vercel Environment Variables", isMock: true });
@@ -57,7 +59,9 @@ app.get("/api/data", async (req, res) => {
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
     const port = parseInt(process.env.FTP_PORT || "21");
-    const secure = process.env.FTP_SECURE === "true" || process.env.FTP_SECURE === "implicit" ? process.env.FTP_SECURE : false;
+    let secure: boolean | "implicit" = false;
+    if (process.env.FTP_SECURE === "true") secure = true;
+    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
     const ftpDir = process.env.FTP_DIR || "/";
 
     if (!host || !user || !password) {
