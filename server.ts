@@ -7,139 +7,137 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+app.use(express.json());
 
-  app.use(express.json());
+// API endpoint to check FTP connection status
+app.get("/api/status", async (req, res) => {
+  const client = new Client();
+  try {
+    const host = process.env.FTP_HOST;
+    const user = process.env.FTP_USER;
+    const password = process.env.FTP_PASSWORD;
 
-  // API endpoint to check FTP connection status
-  app.get("/api/status", async (req, res) => {
-    const client = new Client();
-    try {
-      const host = process.env.FTP_HOST;
-      const user = process.env.FTP_USER;
-      const password = process.env.FTP_PASSWORD;
-
-      if (!host || !user || !password) {
-        return res.json({ success: false, message: "FTP credentials missing", isMock: true });
-      }
-
-      await client.access({
-        host,
-        user,
-        password,
-        secure: false
-      });
-
-      res.json({ success: true, message: "Verbonden met FTP server" });
-    } catch (err: any) {
-      res.json({ success: false, message: `FTP Fout: ${err.message}` });
-    } finally {
-      client.close();
+    if (!host || !user || !password) {
+      return res.json({ success: false, message: "FTP credentials missing", isMock: true });
     }
-  });
 
-  // API endpoint to fetch Excel data from FTP
-  app.get("/api/data", async (req, res) => {
-    const client = new Client();
-    client.ftp.verbose = true;
+    await client.access({
+      host,
+      user,
+      password,
+      secure: false
+    });
 
-    const requestedColumns = [
-      "Dienstadres", "Uur", "Plaats", "richting", "Loop", 
-      "Lijn", "personeelsnummer", "naam", "voertuig", "wissel"
-    ];
+    res.json({ success: true, message: "Verbonden met FTP server" });
+  } catch (err: any) {
+    res.json({ success: false, message: `FTP Fout: ${err.message}` });
+  } finally {
+    client.close();
+  }
+});
 
-    try {
-      const host = process.env.FTP_HOST;
-      const user = process.env.FTP_USER;
-      const password = process.env.FTP_PASSWORD;
-      const ftpDir = process.env.FTP_DIR || "/";
+// API endpoint to fetch Excel data from FTP
+app.get("/api/data", async (req, res) => {
+  const client = new Client();
+  client.ftp.verbose = true;
 
-      if (!host || !user || !password) {
-        // If no credentials, return mock data for demonstration
-        const mockRow = {
-          "Dienstadres": "Gent",
-          "Uur": "08:00",
-          "Plaats": "Korenmarkt",
-          "richting": "Zwijnaarde",
-          "Loop": "101",
-          "Lijn": "1",
-          "personeelsnummer": "12345",
-          "naam": "Jan Janssens",
-          "voertuig": "T01",
-          "wissel": "Nee"
-        };
-        return res.json({
-          success: true,
-          isMock: true,
-          data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2" }],
-          data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4" }],
-          fileNames: ["20240301_dienst.xlsx", "20240229_dienst.xlsx"]
-        });
-      }
+  const requestedColumns = [
+    "Dienstadres", "Uur", "Plaats", "richting", "Loop", 
+    "Lijn", "personeelsnummer", "naam", "voertuig", "wissel"
+  ];
 
-      await client.access({
-        host,
-        user,
-        password,
-        secure: false
-      });
+  try {
+    const host = process.env.FTP_HOST;
+    const user = process.env.FTP_USER;
+    const password = process.env.FTP_PASSWORD;
+    const ftpDir = process.env.FTP_DIR || "/";
 
-      // List files and find the 2 most recent ones starting with yyyymmdd
-      const list = await client.list(ftpDir);
-      const xlsxFiles = list
-        .filter(f => f.isFile && f.name.endsWith(".xlsx") && /^\d{8}/.test(f.name))
-        .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
-        .slice(0, 2);
-
-      const fetchData = async (fileName: string) => {
-        const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
-        const chunks: Buffer[] = [];
-        const writable = new Writable({
-          write(chunk, encoding, callback) {
-            chunks.push(chunk);
-            callback();
-          }
-        });
-
-        await (client as any).downloadToStream(writable, filePath);
-        const buffer = Buffer.concat(chunks);
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-        
-        // Look for "Dienstlijst" sheet
-        const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === "dienstlijst") || workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
-
-        // Filter columns
-        return rawData.map(row => {
-          const filteredRow: any = {};
-          requestedColumns.forEach(col => {
-            filteredRow[col] = row[col] || "";
-          });
-          return filteredRow;
-        });
+    if (!host || !user || !password) {
+      // If no credentials, return mock data for demonstration
+      const mockRow = {
+        "Dienstadres": "Gent",
+        "Uur": "08:00",
+        "Plaats": "Korenmarkt",
+        "richting": "Zwijnaarde",
+        "Loop": "101",
+        "Lijn": "1",
+        "personeelsnummer": "12345",
+        "naam": "Jan Janssens",
+        "voertuig": "T01",
+        "wissel": "Nee"
       };
-
-      const data1 = xlsxFiles[0] ? await fetchData(xlsxFiles[0].name) : [];
-      const data2 = xlsxFiles[1] ? await fetchData(xlsxFiles[1].name) : [];
-
-      res.json({ 
-        success: true, 
-        data1, 
-        data2, 
-        fileNames: xlsxFiles.map(f => f.name) 
+      return res.json({
+        success: true,
+        isMock: true,
+        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2" }],
+        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4" }],
+        fileNames: ["20240301_dienst.xlsx", "20240229_dienst.xlsx"]
       });
-    } catch (err: any) {
-      console.error("FTP Error:", err);
-      res.status(500).json({ success: false, error: err.message });
-    } finally {
-      client.close();
     }
-  });
 
-  // Vite middleware for development
+    await client.access({
+      host,
+      user,
+      password,
+      secure: false
+    });
+
+    // List files and find the 2 most recent ones starting with yyyymmdd
+    const list = await client.list(ftpDir);
+    const xlsxFiles = list
+      .filter(f => f.isFile && f.name.endsWith(".xlsx") && /^\d{8}/.test(f.name))
+      .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
+      .slice(0, 2);
+
+    const fetchData = async (fileName: string) => {
+      const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
+      const chunks: Buffer[] = [];
+      const writable = new Writable({
+        write(chunk, encoding, callback) {
+          chunks.push(chunk);
+          callback();
+        }
+      });
+
+      await (client as any).downloadToStream(writable, filePath);
+      const buffer = Buffer.concat(chunks);
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      
+      // Look for "Dienstlijst" sheet
+      const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === "dienstlijst") || workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+      // Filter columns
+      return rawData.map(row => {
+        const filteredRow: any = {};
+        requestedColumns.forEach(col => {
+          filteredRow[col] = row[col] || "";
+        });
+        return filteredRow;
+      });
+    };
+
+    const data1 = xlsxFiles[0] ? await fetchData(xlsxFiles[0].name) : [];
+    const data2 = xlsxFiles[1] ? await fetchData(xlsxFiles[1].name) : [];
+
+    res.json({ 
+      success: true, 
+      data1, 
+      data2, 
+      fileNames: xlsxFiles.map(f => f.name) 
+    });
+  } catch (err: any) {
+    console.error("FTP Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  } finally {
+    client.close();
+  }
+});
+
+// Vite middleware for development
+async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -149,10 +147,16 @@ async function startServer() {
   } else {
     app.use(express.static("dist"));
   }
+}
 
+setupVite();
+
+// Start server if not running on Vercel
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  const PORT = 3000;
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
 
-startServer();
+export default app;
