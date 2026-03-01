@@ -58,32 +58,32 @@ export default function App() {
   const DeLijnYellow = "#FFD200";
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-900 pb-12">
       {/* Header */}
-      <header className="bg-[#FFD200] shadow-md border-b border-black/10 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-white p-2 rounded-lg shadow-sm">
-              <Bus className="w-8 h-8 text-black" />
+      <header className="bg-[#FFD200] shadow-lg border-b border-black/5 sticky top-0 z-50 safe-top">
+        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-sm">
+              <Bus className="w-6 h-6 sm:w-8 sm:h-8 text-black" />
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase">De Lijn</h1>
-              <p className="text-xs font-bold opacity-70 uppercase tracking-widest text-black">Dienstlijst Monitor</p>
+              <h1 className="text-lg sm:text-2xl font-black tracking-tighter uppercase leading-none">De Lijn</h1>
+              <p className="text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest text-black mt-0.5 sm:mt-1">Monitor</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-full border border-black/5">
-              <div className={`w-2 h-2 rounded-full ${connectionStatus?.success ? 'bg-green-500' : connectionStatus ? 'bg-red-500' : 'bg-gray-300'}`} />
-              <span className="text-[10px] font-black uppercase tracking-wider">
-                {connectionStatus ? (connectionStatus.success ? 'FTP OK' : 'FTP FOUT') : 'FTP STATUS'}
+          
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className={`flex items-center gap-1.5 bg-black/5 px-2 py-1 rounded-full border border-black/5 transition-all ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}>
+              <div className={`w-1.5 h-1.5 rounded-full ${connectionStatus?.success ? 'bg-green-500 animate-pulse' : connectionStatus ? 'bg-red-500' : 'bg-gray-400'}`} />
+              <span className="text-[9px] font-black uppercase tracking-wider hidden xs:inline">
+                {connectionStatus ? (connectionStatus.success ? 'Online' : 'Fout') : 'Status'}
               </span>
             </div>
             
             <button 
               onClick={checkStatus}
               disabled={statusLoading}
-              title="Check FTP Verbinding"
-              className="p-2 rounded-full hover:bg-white/50 transition-colors text-black/60 hover:text-black disabled:opacity-50"
+              className="p-2 rounded-full hover:bg-white/50 active:scale-95 transition-all text-black/60 hover:text-black disabled:opacity-50"
             >
               <Wifi className={`w-5 h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
             </button>
@@ -91,7 +91,7 @@ export default function App() {
             <button 
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-lg"
+              className="flex items-center gap-2 bg-black text-white p-2 sm:px-4 sm:py-2 rounded-full font-bold hover:bg-gray-800 active:scale-95 transition-all disabled:opacity-50 shadow-md"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{loading ? 'Laden...' : 'Vernieuwen'}</span>
@@ -100,29 +100,31 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Connection Status Message */}
         <AnimatePresence>
           {connectionStatus && (
             <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`mb-6 p-4 rounded-2xl flex items-center justify-between shadow-sm border ${
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className={`mb-4 p-3 sm:p-4 rounded-2xl flex items-center justify-between shadow-sm border ${
                 connectionStatus.success 
-                  ? 'bg-green-50 border-green-200 text-green-800' 
-                  : 'bg-red-50 border-red-200 text-red-800'
+                  ? 'bg-white border-green-500/30 text-green-800' 
+                  : 'bg-white border-red-500/30 text-red-800'
               }`}
             >
               <div className="flex items-center gap-3">
-                {connectionStatus.success ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
-                <span className="font-bold text-sm">{connectionStatus.message}</span>
+                <div className={`p-2 rounded-full ${connectionStatus.success ? 'bg-green-100' : 'bg-red-100'}`}>
+                  {connectionStatus.success ? <CheckCircle2 className="w-4 h-4 text-green-600" /> : <XCircle className="w-4 h-4 text-red-600" />}
+                </div>
+                <span className="font-bold text-xs sm:text-sm">{connectionStatus.message}</span>
               </div>
               <button 
                 onClick={() => setConnectionStatus(null)}
-                className="text-xs font-black uppercase tracking-widest opacity-50 hover:opacity-100"
+                className="p-2 text-gray-400 hover:text-gray-600"
               >
-                Sluiten
+                <XCircle className="w-4 h-4 opacity-50" />
               </button>
             </motion.div>
           )}
@@ -134,51 +136,41 @@ export default function App() {
             <motion.div 
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
-              className="mb-8 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-xl flex items-start gap-3 shadow-sm"
+              className="mb-6 bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 rounded-r-2xl flex items-start gap-3 shadow-sm"
             >
-              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5 shrink-0" />
               <div>
-                <h3 className="font-bold text-blue-800">Demo Modus</h3>
-                <p className="text-sm text-blue-700">
-                  Er zijn geen FTP-gegevens geconfigureerd. Je ziet nu voorbeelddata van de twee meest recente (fictieve) bestanden.
+                <h3 className="font-bold text-blue-800 text-sm">Demo Modus</h3>
+                <p className="text-xs text-blue-700 leading-relaxed">
+                  Er zijn geen FTP-gegevens geconfigureerd. Je ziet nu voorbeelddata.
                 </p>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {error && (
-          <div className="mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-xl flex items-start gap-3 shadow-sm">
-            <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
-            <div>
-              <h3 className="font-bold text-red-800">Fout bij ophalen FTP data</h3>
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-12">
+        <div className="space-y-8 sm:space-y-12">
           {/* Section 1 */}
           <section>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-[#FFD200] rounded-2xl flex items-center justify-center shadow-sm">
-                  <FileSpreadsheet className="w-6 h-6 text-black" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                  <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-black uppercase tracking-tight">Recentste Bestand</h2>
-                  <p className="text-sm font-bold text-gray-500">{fileNames[0] || 'Geen bestand gevonden'}</p>
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Recentste Bestand</h2>
+                  <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">{fileNames[0] || 'Geen bestand gevonden'}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-3xl shadow-xl border border-black/5 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-black/5 overflow-hidden">
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-black/5">
+                    <tr className="bg-gray-50/50 border-b border-black/5">
                       {data1.length > 0 && Object.keys(data1[0]).map((key) => (
-                        <th key={key} className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                           {key}
                         </th>
                       ))}
@@ -187,14 +179,14 @@ export default function App() {
                   <tbody className="divide-y divide-black/5">
                     {data1.map((row, i) => (
                       <motion.tr 
-                        initial={{ opacity: 0, x: -10 }}
+                        initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.03 }}
+                        transition={{ delay: i * 0.02 }}
                         key={i} 
-                        className="hover:bg-[#FFD200]/10 transition-colors group"
+                        className="hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10 transition-colors group"
                       >
                         {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-6 py-4 text-sm font-semibold text-gray-700 group-hover:text-black">
+                          <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-black whitespace-nowrap">
                             {val}
                           </td>
                         ))}
@@ -202,38 +194,44 @@ export default function App() {
                     ))}
                     {data1.length === 0 && !loading && (
                       <tr>
-                        <td colSpan={10} className="px-6 py-20 text-center text-gray-400 italic">
-                          Geen gegevens gevonden in het meest recente bestand.
+                        <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                          Geen gegevens gevonden.
                         </td>
                       </tr>
                     )}
                   </tbody>
                 </table>
               </div>
+              {/* Mobile Hint */}
+              <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
+                <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
+                <div className="w-4 h-1 bg-gray-300 rounded-full" />
+              </div>
             </div>
           </section>
 
           {/* Section 2 */}
           <section>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-200 rounded-2xl flex items-center justify-center shadow-sm">
-                  <FileSpreadsheet className="w-6 h-6 text-gray-600" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                  <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                 </div>
-                <div>
-                  <h2 className="text-xl font-black uppercase tracking-tight text-gray-600">Vorige Bestand</h2>
-                  <p className="text-sm font-bold text-gray-400">{fileNames[1] || 'Geen tweede bestand gevonden'}</p>
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Vorige Bestand</h2>
+                  <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">{fileNames[1] || 'Geen tweede bestand gevonden'}</p>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white rounded-3xl shadow-xl border border-black/5 overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-black/5 overflow-hidden opacity-90">
+              <div className="overflow-x-auto scrollbar-hide">
+                <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-black/5">
+                    <tr className="bg-gray-50/50 border-b border-black/5">
                       {data2.length > 0 && Object.keys(data2[0]).map((key) => (
-                        <th key={key} className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                           {key}
                         </th>
                       ))}
@@ -242,14 +240,14 @@ export default function App() {
                   <tbody className="divide-y divide-black/5">
                     {data2.map((row, i) => (
                       <motion.tr 
-                        initial={{ opacity: 0, x: -10 }}
+                        initial={{ opacity: 0, x: -5 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.03 }}
+                        transition={{ delay: i * 0.02 }}
                         key={i} 
                         className="hover:bg-gray-50 transition-colors"
                       >
                         {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-6 py-4 text-sm font-semibold text-gray-500">
+                          <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-500 whitespace-nowrap">
                             {val}
                           </td>
                         ))}
@@ -257,8 +255,8 @@ export default function App() {
                     ))}
                     {data2.length === 0 && !loading && (
                       <tr>
-                        <td colSpan={10} className="px-6 py-20 text-center text-gray-400 italic">
-                          Geen gegevens gevonden in het tweede bestand.
+                        <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                          Geen gegevens gevonden.
                         </td>
                       </tr>
                     )}

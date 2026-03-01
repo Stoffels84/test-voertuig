@@ -34,7 +34,7 @@ app.get("/api/status", async (req, res) => {
       secure: secure as any
     });
 
-    res.json({ success: true, message: `Succesvol verbonden met ${host}` });
+    res.json({ success: true, message: "Succesvol verbonden met De Lijn" });
   } catch (err: any) {
     console.error("Status Check Error:", err);
     res.json({ success: false, message: `FTP Verbindingsfout: ${err.message}. Controleer of de server Vercel IP's toestaat.` });
