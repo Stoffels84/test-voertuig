@@ -94,14 +94,20 @@ app.get("/api/data", async (req, res) => {
       secure: secure as any
     });
 
-    // List files and find the 2 most recent ones starting with yyyymmdd
+    // Get today's date in YYYYMMDD format
+    const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+
+    // List files and find the 2 most recent ones starting with yyyymmdd (up to today)
     const list = await client.list(ftpDir);
     const xlsxFiles = list
       .filter(f => {
         const name = f.name.toLowerCase();
-        const matchesDate = /^\d{8}/.test(f.name);
+        const dateMatch = f.name.match(/^(\d{8})/);
         const isExcel = name.endsWith(".xlsx");
-        return matchesDate && isExcel;
+        if (!dateMatch || !isExcel) return false;
+        
+        const fileDate = dateMatch[1];
+        return fileDate <= todayStr; // Only today or in the past
       })
       .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
       .slice(0, 2);
