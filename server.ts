@@ -13,25 +13,30 @@ app.use(express.json());
 // API endpoint to check FTP connection status
 app.get("/api/status", async (req, res) => {
   const client = new Client();
+  client.ftp.verbose = true;
   try {
     const host = process.env.FTP_HOST;
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
+    const port = parseInt(process.env.FTP_PORT || "21");
+    const secure = process.env.FTP_SECURE === "true" || process.env.FTP_SECURE === "implicit" ? process.env.FTP_SECURE : false;
 
     if (!host || !user || !password) {
-      return res.json({ success: false, message: "FTP credentials missing", isMock: true });
+      return res.json({ success: false, message: "FTP inloggegevens ontbreken in Vercel Environment Variables", isMock: true });
     }
 
     await client.access({
       host,
       user,
       password,
-      secure: false
+      port,
+      secure: secure as any
     });
 
-    res.json({ success: true, message: "Verbonden met FTP server" });
+    res.json({ success: true, message: `Succesvol verbonden met ${host}` });
   } catch (err: any) {
-    res.json({ success: false, message: `FTP Fout: ${err.message}` });
+    console.error("Status Check Error:", err);
+    res.json({ success: false, message: `FTP Verbindingsfout: ${err.message}. Controleer of de server Vercel IP's toestaat.` });
   } finally {
     client.close();
   }
@@ -51,10 +56,12 @@ app.get("/api/data", async (req, res) => {
     const host = process.env.FTP_HOST;
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
+    const port = parseInt(process.env.FTP_PORT || "21");
+    const secure = process.env.FTP_SECURE === "true" || process.env.FTP_SECURE === "implicit" ? process.env.FTP_SECURE : false;
     const ftpDir = process.env.FTP_DIR || "/";
 
     if (!host || !user || !password) {
-      // If no credentials, return mock data for demonstration
+      // Mock data logic...
       const mockRow = {
         "Dienstadres": "Gent",
         "Uur": "08:00",
@@ -80,7 +87,8 @@ app.get("/api/data", async (req, res) => {
       host,
       user,
       password,
-      secure: false
+      port,
+      secure: secure as any
     });
 
     // List files and find the 2 most recent ones starting with yyyymmdd
