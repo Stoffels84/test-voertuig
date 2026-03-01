@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -16,7 +16,38 @@ export default function App() {
   
   const [statusLoading, setStatusLoading] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<{ success: boolean; message: string } | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(() => localStorage.getItem('lastSearch') || '');
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000); // Update every minute
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('lastSearch', searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', String(isDarkMode));
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
 
   const checkStatus = async () => {
     setStatusLoading(true);
@@ -74,25 +105,75 @@ export default function App() {
     return `Laatst aangepast: ${date.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const getActiveTripIndex = (data: TransportData[]) => {
+    if (!data || data.length === 0) return -1;
+    
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    let activeIndex = -1;
+    let lastPassedMinutes = -1;
+
+    data.forEach((row, index) => {
+      const timeStr = row.Uur;
+      if (timeStr && timeStr.includes(':')) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const tripMinutes = hours * 60 + minutes;
+        
+        // Find the latest trip that has already started
+        if (tripMinutes <= nowMinutes && tripMinutes > lastPassedMinutes) {
+          lastPassedMinutes = tripMinutes;
+          activeIndex = index;
+        }
+      }
+    });
+
+    return activeIndex;
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-900 pb-12">
+    <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#121212] text-gray-100' : 'bg-[#F8F9FA] text-gray-900'} font-sans pb-12`}>
+      {/* Offline Banner */}
+      <AnimatePresence>
+        {!isOnline && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] py-2 text-center sticky top-0 z-[60] shadow-lg"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <WifiOff className="w-3 h-3" />
+              Je bent offline - Gegevens zijn mogelijk verouderd
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
-      <header className="bg-[#FFD200] shadow-lg border-b border-black/5 sticky top-0 z-50 safe-top">
+      <header className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-[#FFD200] border-black/5'} shadow-lg border-b sticky top-0 z-50 safe-top transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-white p-1.5 sm:p-2 rounded-xl shadow-sm">
-              <Bus className="w-6 h-6 sm:w-8 sm:h-8 text-black" />
+            <div className={`${isDarkMode ? 'bg-white/10' : 'bg-white'} p-1.5 sm:p-2 rounded-xl shadow-sm transition-colors`}>
+              <Bus className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
             </div>
             <div>
-              <h1 className="text-lg sm:text-2xl font-black tracking-tighter uppercase leading-none">De Lijn</h1>
-              <p className="text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest text-black mt-0.5 sm:mt-1">Opzoeken voertuig</p>
+              <h1 className={`text-lg sm:text-2xl font-black tracking-tighter uppercase leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>De Lijn</h1>
+              <p className={`text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest mt-0.5 sm:mt-1 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Opzoeken voertuig chauffeur</p>
             </div>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
-            <div className={`flex items-center gap-1.5 bg-black/5 px-2 py-1 rounded-full border border-black/5 transition-all ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}>
+            <button 
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              className={`p-2 rounded-full transition-all active:scale-95 ${isDarkMode ? 'bg-white/10 text-[#FFD200] hover:bg-white/20' : 'bg-black/5 text-black/60 hover:bg-white/50 hover:text-black'}`}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/5'} ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}>
               <div className={`w-1.5 h-1.5 rounded-full ${connectionStatus?.success ? 'bg-green-500 animate-pulse' : connectionStatus ? 'bg-red-500' : 'bg-gray-400'}`} />
-              <span className="text-[9px] font-black uppercase tracking-wider hidden xs:inline">
+              <span className={`text-[9px] font-black uppercase tracking-wider hidden xs:inline ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
                 {connectionStatus ? (connectionStatus.success ? 'Online' : 'Fout') : 'Status'}
               </span>
             </div>
@@ -100,7 +181,7 @@ export default function App() {
             <button 
               onClick={checkStatus}
               disabled={statusLoading}
-              className="p-2 rounded-full hover:bg-white/50 active:scale-95 transition-all text-black/60 hover:text-black disabled:opacity-50"
+              className={`p-2 rounded-full transition-all active:scale-95 disabled:opacity-50 ${isDarkMode ? 'bg-white/10 text-gray-400 hover:text-white' : 'bg-black/5 text-black/60 hover:text-black hover:bg-white/50'}`}
             >
               <Wifi className={`w-5 h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
             </button>
@@ -108,7 +189,7 @@ export default function App() {
             <button 
               onClick={fetchData}
               disabled={loading}
-              className="flex items-center gap-2 bg-black text-white p-2 sm:px-4 sm:py-2 rounded-full font-bold hover:bg-gray-800 active:scale-95 transition-all disabled:opacity-50 shadow-md"
+              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all disabled:opacity-50 shadow-md ${isDarkMode ? 'bg-[#FFD200] text-black hover:bg-[#FFE04D]' : 'bg-black text-white hover:bg-gray-800'}`}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{loading ? 'Laden...' : 'Vernieuwen'}</span>
@@ -170,14 +251,18 @@ export default function App() {
         <div className="mb-6">
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400 group-focus-within:text-[#FFD200] transition-colors" />
+              <Search className={`h-5 w-5 transition-colors ${isDarkMode ? 'text-gray-500 group-focus-within:text-[#FFD200]' : 'text-gray-400 group-focus-within:text-[#FFD200]'}`} />
             </div>
             <input
               type="text"
               placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full pl-11 pr-4 py-3.5 bg-white border border-black/5 rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:text-gray-400 placeholder:font-medium"
+              className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
+                isDarkMode 
+                  ? 'bg-[#1E1E1E] border-white/10 text-white placeholder:text-gray-600' 
+                  : 'bg-white border-black/5 text-gray-900 placeholder:text-gray-400'
+              }`}
             />
           </div>
         </div>
@@ -208,11 +293,11 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-black/5 overflow-hidden">
+                <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
                   <div className="overflow-x-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                       <thead>
-                        <tr className="bg-gray-50/50 border-b border-black/5">
+                        <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
                           {data1.length > 0 && Object.keys(data1[0]).map((key) => (
                             <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {key}
@@ -220,24 +305,49 @@ export default function App() {
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-black/5">
-                        {data1
-                          .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
-                          .map((row, i) => (
-                          <motion.tr 
-                            initial={{ opacity: 0, x: -5 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.02 }}
-                            key={i} 
-                            className="hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10 transition-colors group"
-                          >
-                            {Object.values(row).map((val, j) => (
-                              <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-black whitespace-nowrap">
-                                {val}
-                              </td>
-                            ))}
-                          </motion.tr>
-                        ))}
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                        {(() => {
+                          const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                          const activeIndex = getActiveTripIndex(filteredData);
+                          
+                          return filteredData.map((row, i) => {
+                            const isActive = i === activeIndex;
+                            return (
+                              <motion.tr 
+                                initial={{ opacity: 0, x: -5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.02 }}
+                                key={i} 
+                                className={`transition-all group relative ${
+                                  isActive 
+                                    ? (isDarkMode ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30' : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50') 
+                                    : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
+                                }`}
+                              >
+                                {isActive && (
+                                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
+                                )}
+                                {Object.entries(row).map(([key, val], j) => (
+                                  <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                                    isActive 
+                                      ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
+                                      : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
+                                  }`}>
+                                    <div className="flex items-center gap-2">
+                                      {isActive && key === 'Uur' && (
+                                        <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
+                                      )}
+                                      {val}
+                                      {isActive && key === 'Uur' && (
+                                        <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                ))}
+                              </motion.tr>
+                            );
+                          });
+                        })()}
                         {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                           <tr>
                             <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
@@ -280,11 +390,11 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-black/5 overflow-hidden opacity-90">
+                <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-lg border overflow-hidden opacity-90`}>
                   <div className="overflow-x-auto scrollbar-hide">
                     <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                       <thead>
-                        <tr className="bg-gray-50/50 border-b border-black/5">
+                        <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
                           {data2.length > 0 && Object.keys(data2[0]).map((key) => (
                             <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {key}
@@ -292,7 +402,7 @@ export default function App() {
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-black/5">
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
                         {data2
                           .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
                           .map((row, i) => (
@@ -301,10 +411,10 @@ export default function App() {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.02 }}
                             key={i} 
-                            className="hover:bg-gray-50 transition-colors"
+                            className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
                           >
                             {Object.values(row).map((val, j) => (
-                              <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-500 whitespace-nowrap">
+                              <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {val}
                               </td>
                             ))}
@@ -325,13 +435,13 @@ export default function App() {
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-                <Search className="w-10 h-10 text-gray-300" />
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                <Search className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
               </div>
-              <h2 className="text-xl font-black uppercase tracking-tight text-gray-400 mb-2">
+              <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                 {searchTerm.length > 0 ? 'Typ nog even verder...' : 'Start met zoeken'}
               </h2>
-              <p className="text-sm font-bold text-gray-400 max-w-xs leading-relaxed">
+              <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                 {searchTerm.length > 0 
                   ? `Voer minimaal 4 cijfers in om te zoeken. Je hebt er nu ${searchTerm.length}.`
                   : 'Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.'}
