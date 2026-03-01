@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -20,6 +20,47 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('darkMode') === 'true');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
+
+  const fetchWeather = async (lat: number, lon: number) => {
+    try {
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+      const data = await response.json();
+      const current = data.current_weather;
+      
+      const getCondition = (code: number) => {
+        if (code === 0) return 'Onbewolkt';
+        if (code <= 3) return 'Licht bewolkt';
+        if (code <= 48) return 'Mistig';
+        if (code <= 55) return 'Motregen';
+        if (code <= 65) return 'Regen';
+        if (code <= 77) return 'Sneeuw';
+        if (code <= 82) return 'Regenbuien';
+        if (code <= 86) return 'Sneeuwbuien';
+        if (code <= 99) return 'Onweer';
+        return 'Onbekend';
+      };
+
+      setWeather({
+        temp: Math.round(current.temperature),
+        condition: getCondition(current.weathercode),
+        code: current.weathercode
+      });
+    } catch (err) {
+      console.error('Weather fetch error:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+        () => fetchWeather(51.0543, 3.7174) // Fallback to Ghent
+      );
+    } else {
+      fetchWeather(51.0543, 3.7174);
+    }
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -105,6 +146,17 @@ export default function App() {
     return `Laatst aangepast: ${date.toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}`;
   };
 
+  const getWeatherIcon = (code: number) => {
+    if (code === 0) return <Sun className="w-4 h-4 text-yellow-500" />;
+    if (code <= 3) return <CloudSun className="w-4 h-4 text-gray-400" />;
+    if (code <= 48) return <Cloud className="w-4 h-4 text-gray-400" />;
+    if (code <= 65) return <CloudRain className="w-4 h-4 text-blue-400" />;
+    if (code <= 77) return <Snowflake className="w-4 h-4 text-blue-200" />;
+    if (code <= 82) return <Droplets className="w-4 h-4 text-blue-500" />;
+    if (code <= 99) return <CloudLightning className="w-4 h-4 text-purple-500" />;
+    return <Cloud className="w-4 h-4 text-gray-400" />;
+  };
+
   const getActiveTripIndex = (data: TransportData[]) => {
     if (!data || data.length === 0) return -1;
     
@@ -164,6 +216,16 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
+            {weather && (
+              <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white/50 border-black/5'}`}>
+                {getWeatherIcon(weather.code)}
+                <div className="flex flex-col leading-none">
+                  <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-black'}`}>{weather.temp}°C</span>
+                  <span className={`text-[7px] sm:text-[8px] font-bold opacity-60 hidden xs:inline ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>{weather.condition}</span>
+                </div>
+              </div>
+            )}
+
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`p-2 rounded-full transition-all active:scale-95 ${isDarkMode ? 'bg-white/10 text-[#FFD200] hover:bg-white/20' : 'bg-black/5 text-black/60 hover:bg-white/50 hover:text-black'}`}
@@ -288,6 +350,9 @@ export default function App() {
                             {formatModifiedTime(fileNames[0].modifiedAt)}
                           </p>
                         )}
+                        <p className="text-[8px] sm:text-xs font-bold text-[#FFD200] uppercase tracking-wider mt-0.5">
+                          ↔ Schuif opzij voor meer data te zien
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -324,15 +389,15 @@ export default function App() {
                                     : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
                                 }`}
                               >
-                                {isActive && (
-                                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
-                                )}
                                 {Object.entries(row).map(([key, val], j) => (
-                                  <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                                  <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
                                     isActive 
                                       ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
                                       : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
                                   }`}>
+                                    {isActive && j === 0 && (
+                                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
+                                    )}
                                     <div className="flex items-center gap-2">
                                       {isActive && key === 'Uur' && (
                                         <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
@@ -385,6 +450,9 @@ export default function App() {
                             {formatModifiedTime(fileNames[1].modifiedAt)}
                           </p>
                         )}
+                        <p className="text-[8px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                          ↔ Schuif opzij voor meer data te zien
+                        </p>
                       </div>
                     </div>
                   </div>

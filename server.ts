@@ -49,8 +49,8 @@ app.get("/api/data", async (req, res) => {
   client.ftp.verbose = true;
 
   const requestedColumns = [
-    "Dienstadres", "Uur", "Plaats", "richting", "Loop", 
-    "Lijn", "personeelsnummer", "naam", "voertuig", "wissel"
+    "personeelsnummer", "naam", "Loop", "Lijn", "Uur", 
+    "voertuig", "wissel", "Dienstadres", "Plaats", "richting"
   ];
 
   try {
@@ -66,16 +66,16 @@ app.get("/api/data", async (req, res) => {
     if (!host || !user || !password) {
       // Mock data logic...
       const mockRow = {
-        "Dienstadres": "Gent",
-        "Uur": "08:00",
-        "Plaats": "Korenmarkt",
-        "richting": "Zwijnaarde",
-        "Loop": "101",
-        "Lijn": "1",
         "personeelnummer": "12345",
         "naam": "Jan Janssens",
+        "Loop": "101",
+        "Lijn": "1",
+        "Uur": "08:00",
         "voertuig": "T01",
-        "wissel": "Nee"
+        "wissel": "Nee",
+        "Dienstadres": "Gent",
+        "Plaats": "Korenmarkt",
+        "richting": "Zwijnaarde"
       };
       return res.json({
         success: true,
