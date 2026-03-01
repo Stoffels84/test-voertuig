@@ -196,11 +196,11 @@ export default function App() {
                       <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Vandaag</h2>
                       <div className="flex flex-col">
                         <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                          {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
+                          {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen bestand gevonden'}
                         </p>
-                        {fileNames[0]?.modifiedAt && (
+                        {fileNames[1]?.modifiedAt && (
                           <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                            {formatModifiedTime(fileNames[0].modifiedAt)}
+                            {formatModifiedTime(fileNames[1].modifiedAt)}
                           </p>
                         )}
                       </div>
@@ -213,7 +213,7 @@ export default function App() {
                     <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                       <thead>
                         <tr className="bg-gray-50/50 border-b border-black/5">
-                          {data1.length > 0 && Object.keys(data1[0]).map((key) => (
+                          {data2.length > 0 && Object.keys(data2[0]).map((key) => (
                             <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {key}
                             </th>
@@ -221,7 +221,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/5">
-                        {data1
+                        {data2
                           .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
                           .map((row, i) => (
                           <motion.tr 
@@ -238,7 +238,7 @@ export default function App() {
                             ))}
                           </motion.tr>
                         ))}
-                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                        {data2.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                           <tr>
                             <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                               Geen gegevens gevonden voor "{searchTerm}".
@@ -265,14 +265,14 @@ export default function App() {
                       <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Gisteren</h2>
+                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Morgen</h2>
                       <div className="flex flex-col">
                         <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">
-                          {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen tweede bestand gevonden'}
+                          {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen tweede bestand gevonden'}
                         </p>
-                        {fileNames[1]?.modifiedAt && (
+                        {fileNames[0]?.modifiedAt && (
                           <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                            {formatModifiedTime(fileNames[1].modifiedAt)}
+                            {formatModifiedTime(fileNames[0].modifiedAt)}
                           </p>
                         )}
                       </div>
@@ -285,7 +285,7 @@ export default function App() {
                     <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                       <thead>
                         <tr className="bg-gray-50/50 border-b border-black/5">
-                          {data2.length > 0 && Object.keys(data2[0]).map((key) => (
+                          {data1.length > 0 && Object.keys(data1[0]).map((key) => (
                             <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                               {key}
                             </th>
@@ -293,7 +293,7 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/5">
-                        {data2
+                        {data1
                           .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
                           .map((row, i) => (
                           <motion.tr 
@@ -310,7 +310,7 @@ export default function App() {
                             ))}
                           </motion.tr>
                         ))}
-                        {data2.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                           <tr>
                             <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                               Geen gegevens gevonden voor "{searchTerm}".
