@@ -1,0 +1,5 @@
+{
+  "name": "De Lijn Data Viewer",
+  "description": "Een applicatie in de huisstijl van De Lijn die Excel-bestanden via FTP inlaadt en visualiseert.",
+  "requestFramePermissions": []
+}
