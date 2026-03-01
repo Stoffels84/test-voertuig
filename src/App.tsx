@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -69,7 +69,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-lg sm:text-2xl font-black tracking-tighter uppercase leading-none">De Lijn</h1>
-              <p className="text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest text-black mt-0.5 sm:mt-1">Monitor</p>
+              <p className="text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest text-black mt-0.5 sm:mt-1">Opzoeken voertuig</p>
             </div>
           </div>
           
@@ -167,125 +167,139 @@ export default function App() {
         </div>
 
         <div className="space-y-8 sm:space-y-12">
-          {/* Section 1 */}
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                  <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
+          {searchTerm ? (
+            <>
+              {/* Section 1 */}
+              <section>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Vandaag</h2>
+                      <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">{fileNames[0] || 'Geen bestand gevonden'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Recentste Bestand</h2>
-                  <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">{fileNames[0] || 'Geen bestand gevonden'}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-black/5 overflow-hidden">
-              <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                  <thead>
-                    <tr className="bg-gray-50/50 border-b border-black/5">
-                      {data1.length > 0 && Object.keys(data1[0]).map((key) => (
-                        <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                          {key}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5">
-                    {data1
-                      .filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((row, i) => (
-                      <motion.tr 
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.02 }}
-                        key={i} 
-                        className="hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10 transition-colors group"
-                      >
-                        {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-black whitespace-nowrap">
-                            {val}
-                          </td>
+                
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-black/5 overflow-hidden">
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-black/5">
+                          {data1.length > 0 && Object.keys(data1[0]).map((key) => (
+                            <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5">
+                        {data1
+                          .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((row, i) => (
+                          <motion.tr 
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            key={i} 
+                            className="hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10 transition-colors group"
+                          >
+                            {Object.values(row).map((val, j) => (
+                              <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-700 group-hover:text-black whitespace-nowrap">
+                                {val}
+                              </td>
+                            ))}
+                          </motion.tr>
                         ))}
-                      </motion.tr>
-                    ))}
-                    {data1.filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
-                      <tr>
-                        <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                          Geen gegevens gevonden.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {/* Mobile Hint */}
-              <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
-                <div className="w-4 h-1 bg-gray-300 rounded-full" />
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
-                <div className="w-4 h-1 bg-gray-300 rounded-full" />
-              </div>
-            </div>
-          </section>
+                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                          <tr>
+                            <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                              Geen gegevens gevonden voor "{searchTerm}".
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Mobile Hint */}
+                  <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
+                    <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
+                    <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                  </div>
+                </div>
+              </section>
 
-          {/* Section 2 */}
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                  <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+              {/* Section 2 */}
+              <section>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                      <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Gisteren</h2>
+                      <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">{fileNames[1] || 'Geen tweede bestand gevonden'}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Vorige Bestand</h2>
-                  <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">{fileNames[1] || 'Geen tweede bestand gevonden'}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-black/5 overflow-hidden opacity-90">
-              <div className="overflow-x-auto scrollbar-hide">
-                <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                  <thead>
-                    <tr className="bg-gray-50/50 border-b border-black/5">
-                      {data2.length > 0 && Object.keys(data2[0]).map((key) => (
-                        <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                          {key}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5">
-                    {data2
-                      .filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((row, i) => (
-                      <motion.tr 
-                        initial={{ opacity: 0, x: -5 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.02 }}
-                        key={i} 
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        {Object.values(row).map((val, j) => (
-                          <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-500 whitespace-nowrap">
-                            {val}
-                          </td>
+                
+                <div className="bg-white rounded-2xl sm:rounded-3xl shadow-lg border border-black/5 overflow-hidden opacity-90">
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                      <thead>
+                        <tr className="bg-gray-50/50 border-b border-black/5">
+                          {data2.length > 0 && Object.keys(data2[0]).map((key) => (
+                            <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-black/5">
+                        {data2
+                          .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((row, i) => (
+                          <motion.tr 
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            key={i} 
+                            className="hover:bg-gray-50 transition-colors"
+                          >
+                            {Object.values(row).map((val, j) => (
+                              <td key={j} className="px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold text-gray-500 whitespace-nowrap">
+                                {val}
+                              </td>
+                            ))}
+                          </motion.tr>
                         ))}
-                      </motion.tr>
-                    ))}
-                    {data2.filter(row => !searchTerm || String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
-                      <tr>
-                        <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                          Geen gegevens gevonden.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                        {data2.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                          <tr>
+                            <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                              Geen gegevens gevonden voor "{searchTerm}".
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <Search className="w-10 h-10 text-gray-300" />
               </div>
+              <h2 className="text-xl font-black uppercase tracking-tight text-gray-400 mb-2">Start met zoeken</h2>
+              <p className="text-sm font-bold text-gray-400 max-w-xs leading-relaxed">
+                Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.
+              </p>
             </div>
-          </section>
+          )}
         </div>
       </main>
     </div>
