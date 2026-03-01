@@ -267,26 +267,6 @@ export default function App() {
           </section>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-black/5 mt-12 py-8">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[#FFD200] rounded flex items-center justify-center">
-              <Bus className="w-4 h-4 text-black" />
-            </div>
-            <span className="font-black uppercase text-sm">De Lijn Viewer</span>
-          </div>
-          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-            © {new Date().getFullYear()} De Lijn - Alle rechten voorbehouden
-          </p>
-          <div className="flex gap-4">
-            <a href="https://www.delijn.be" target="_blank" rel="noreferrer" className="text-gray-400 hover:text-black transition-colors">
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

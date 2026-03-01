@@ -61,7 +61,7 @@ app.get("/api/data", async (req, res) => {
     let secure: boolean | "implicit" = false;
     if (process.env.FTP_SECURE === "true") secure = true;
     if (process.env.FTP_SECURE === "implicit") secure = "implicit";
-    const ftpDir = process.env.FTP_DIR || "/";
+    const ftpDir = process.env.FTP_DIR || "/steekkaart";
 
     if (!host || !user || !password) {
       // Mock data logic...
