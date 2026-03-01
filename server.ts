@@ -82,7 +82,12 @@ app.get("/api/data", async (req, res) => {
         isMock: true,
         data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890" }],
         data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223" }],
-        fileNames: ["20240301_dienst.xlsx", "20240229_dienst.xlsx"]
+        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556" }],
+        fileNames: [
+          { name: "20240301_dienst.xlsx", modifiedAt: new Date().toISOString() }, 
+          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() },
+          { name: "20240302_dienst.xlsx", modifiedAt: new Date().toISOString() }
+        ]
       });
     }
 
@@ -97,20 +102,17 @@ app.get("/api/data", async (req, res) => {
     // Get today's date in YYYYMMDD format
     const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
-    // List files and find the 2 most recent ones starting with yyyymmdd (up to today)
+    // List files and find the 3 most recent ones starting with yyyymmdd
     const list = await client.list(ftpDir);
     const xlsxFiles = list
       .filter(f => {
         const name = f.name.toLowerCase();
         const dateMatch = f.name.match(/^(\d{8})/);
         const isExcel = name.endsWith(".xlsx");
-        if (!dateMatch || !isExcel) return false;
-        
-        const fileDate = dateMatch[1];
-        return fileDate <= todayStr; // Only today or in the past
+        return dateMatch && isExcel;
       })
       .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
-      .slice(0, 2);
+      .slice(0, 3);
 
     if (xlsxFiles.length === 0) {
       const allFiles = list.map(f => f.name).join(", ");
@@ -174,14 +176,58 @@ app.get("/api/data", async (req, res) => {
       });
     };
 
-    const data1 = xlsxFiles[0] ? await fetchData(xlsxFiles[0].name) : [];
-    const data2 = xlsxFiles[1] ? await fetchData(xlsxFiles[1].name) : [];
+    // Map results to data1 (today/latest), data2 (yesterday/previous), data3 (tomorrow/future)
+    // Actually we sort by date descending, so:
+    // xlsxFiles[0] is the latest (could be tomorrow if exists)
+    // xlsxFiles[1] is today
+    // xlsxFiles[2] is yesterday
+    
+    // Let's find today's file index
+    const todayIndex = xlsxFiles.findIndex(f => f.name.startsWith(todayStr));
+    
+    let data1: any[] = []; // Today
+    let data2: any[] = []; // Yesterday
+    let data3: any[] = []; // Tomorrow
+    let fileNames: any[] = [];
 
-    res.json({ 
-      success: true, 
-      data1, 
-      data2, 
-      fileNames: xlsxFiles.map(f => ({ name: f.name, modifiedAt: f.modifiedAt }))
+    if (todayIndex !== -1) {
+      // Today exists
+      data1 = await fetchData(xlsxFiles[todayIndex].name);
+      fileNames[0] = { name: xlsxFiles[todayIndex].name, modifiedAt: xlsxFiles[todayIndex].modifiedAt };
+      
+      // Yesterday is likely todayIndex + 1
+      if (xlsxFiles[todayIndex + 1]) {
+        data2 = await fetchData(xlsxFiles[todayIndex + 1].name);
+        fileNames[1] = { name: xlsxFiles[todayIndex + 1].name, modifiedAt: xlsxFiles[todayIndex + 1].modifiedAt };
+      }
+      
+      // Tomorrow is likely todayIndex - 1
+      if (todayIndex > 0 && xlsxFiles[todayIndex - 1]) {
+        data3 = await fetchData(xlsxFiles[todayIndex - 1].name);
+        fileNames[2] = { name: xlsxFiles[todayIndex - 1].name, modifiedAt: xlsxFiles[todayIndex - 1].modifiedAt };
+      }
+    } else {
+      // If today doesn't exist, just take the top 3 as they are
+      if (xlsxFiles[0]) {
+        data1 = await fetchData(xlsxFiles[0].name);
+        fileNames[0] = { name: xlsxFiles[0].name, modifiedAt: xlsxFiles[0].modifiedAt };
+      }
+      if (xlsxFiles[1]) {
+        data2 = await fetchData(xlsxFiles[1].name);
+        fileNames[1] = { name: xlsxFiles[1].name, modifiedAt: xlsxFiles[1].modifiedAt };
+      }
+      if (xlsxFiles[2]) {
+        data3 = await fetchData(xlsxFiles[2].name);
+        fileNames[2] = { name: xlsxFiles[2].name, modifiedAt: xlsxFiles[2].modifiedAt };
+      }
+    }
+
+    res.json({
+      success: true,
+      data1,
+      data2,
+      data3,
+      fileNames
     });
   } catch (err: any) {
     console.error("FTP Error:", err);

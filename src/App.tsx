@@ -9,6 +9,7 @@ interface TransportData {
 export default function App() {
   const [data1, setData1] = useState<TransportData[]>([]);
   const [data2, setData2] = useState<TransportData[]>([]);
+  const [data3, setData3] = useState<TransportData[]>([]);
   const [fileNames, setFileNames] = useState<{ name: string; modifiedAt?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +113,7 @@ export default function App() {
       if (result.success) {
         setData1(result.data1);
         setData2(result.data2);
+        setData3(result.data3 || []);
         setFileNames(result.fileNames || []);
         setIsMock(!!result.isMock);
       } else {
@@ -183,6 +185,32 @@ export default function App() {
     return activeIndex;
   };
 
+  const getNextTrip = (data: TransportData[]) => {
+    if (!data || data.length === 0) return null;
+    
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    let nextTrip = null;
+    let minDiff = Infinity;
+
+    data.forEach((row) => {
+      const timeStr = row.Uur;
+      if (timeStr && timeStr.includes(':')) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const tripMinutes = hours * 60 + minutes;
+        const diff = tripMinutes - nowMinutes;
+        
+        if (diff > 0 && diff < minDiff) {
+          minDiff = diff;
+          nextTrip = { ...row, diff };
+        }
+      }
+    });
+
+    return nextTrip;
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#121212] text-gray-100' : 'bg-[#F8F9FA] text-gray-900'} font-sans pb-12`}>
       {/* Offline Banner */}
@@ -217,10 +245,14 @@ export default function App() {
           
           <div className="flex items-center gap-2 sm:gap-4">
             {weather && (
-              <div className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white/50 border-black/5'}`}>
+              <div className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full border transition-all shadow-sm ${
+                isDarkMode 
+                  ? 'bg-white/10 border-white/10' 
+                  : 'bg-white border-black/5'
+              }`}>
                 {getWeatherIcon(weather.code)}
                 <div className="flex flex-col leading-none">
-                  <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-black'}`}>{weather.temp}°C</span>
+                  <span className={`text-[10px] sm:text-[11px] font-black uppercase tracking-tighter ${isDarkMode ? 'text-white' : 'text-black'}`}>{weather.temp}°C</span>
                   <span className={`text-[7px] sm:text-[8px] font-bold opacity-60 hidden xs:inline ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>{weather.condition}</span>
                 </div>
               </div>
@@ -228,14 +260,22 @@ export default function App() {
 
             <button 
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 rounded-full transition-all active:scale-95 ${isDarkMode ? 'bg-white/10 text-[#FFD200] hover:bg-white/20' : 'bg-black/5 text-black/60 hover:bg-white/50 hover:text-black'}`}
+              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
+                isDarkMode 
+                  ? 'bg-white/10 text-[#FFD200] border-white/10 hover:bg-white/20' 
+                  : 'bg-white/80 text-black border-black/5 hover:bg-white'
+              }`}
             >
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/5'} ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${connectionStatus?.success ? 'bg-green-500 animate-pulse' : connectionStatus ? 'bg-red-500' : 'bg-gray-400'}`} />
-              <span className={`text-[9px] font-black uppercase tracking-wider hidden xs:inline ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+              isDarkMode 
+                ? 'bg-white/5 border-white/10' 
+                : 'bg-white/60 border-black/5'
+            } ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}>
+              <div className={`w-2 h-2 rounded-full ${connectionStatus?.success ? 'bg-green-500 animate-pulse' : connectionStatus ? 'bg-red-500' : 'bg-gray-400'}`} />
+              <span className={`text-[10px] font-black uppercase tracking-wider hidden xs:inline ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
                 {connectionStatus ? (connectionStatus.success ? 'Online' : 'Fout') : 'Status'}
               </span>
             </div>
@@ -243,7 +283,11 @@ export default function App() {
             <button 
               onClick={checkStatus}
               disabled={statusLoading}
-              className={`p-2 rounded-full transition-all active:scale-95 disabled:opacity-50 ${isDarkMode ? 'bg-white/10 text-gray-400 hover:text-white' : 'bg-black/5 text-black/60 hover:text-black hover:bg-white/50'}`}
+              className={`p-2.5 rounded-full transition-all active:scale-95 disabled:opacity-50 shadow-sm border ${
+                isDarkMode 
+                  ? 'bg-white/10 text-gray-400 border-white/10 hover:text-white' 
+                  : 'bg-white/80 text-black border-black/5 hover:bg-white'
+              }`}
             >
               <Wifi className={`w-5 h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
             </button>
@@ -332,6 +376,123 @@ export default function App() {
         <div className="space-y-8 sm:space-y-12">
           {searchTerm.length >= 4 ? (
             <>
+              {/* Next Service Banner */}
+              {(() => {
+                const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                const nextTrip = getNextTrip(filteredData);
+                if (!nextTrip) return null;
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
+                      isDarkMode 
+                        ? 'bg-[#FFD200]/10 border-[#FFD200]/20' 
+                        : 'bg-[#FFD200] border-black/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+                        isDarkMode ? 'bg-[#FFD200]/20' : 'bg-white/40'
+                      }`}>
+                        <Clock className={`w-6 h-6 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+                      </div>
+                      <div className="text-center sm:text-left">
+                        <h3 className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>
+                          Volgende dienst
+                        </h3>
+                        <p className={`text-lg sm:text-xl font-black tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          Lijn {nextTrip.Lijn} • {nextTrip.Plaats}
+                        </p>
+                        <p className={`text-xs font-bold mt-1 opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
+                          Vertrek om {nextTrip.Uur} • Richting {nextTrip.richting}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`px-6 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm ${
+                      isDarkMode ? 'bg-white/5' : 'bg-black text-white'
+                    }`}>
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Over</span>
+                      <span className="text-2xl font-black tracking-tighter leading-none">
+                        {nextTrip.diff} <span className="text-xs uppercase ml-0.5">min</span>
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
+              {/* Section 2 - Tomorrow */}
+              {data3.length > 0 && (
+                <section>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${isDarkMode ? 'bg-emerald-500/20' : 'bg-emerald-500'}`}>
+                        <Calendar className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-emerald-500' : 'text-white'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className={`text-base sm:text-xl font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>Morgen</h2>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                            {fileNames[2] ? formatFileDate(fileNames[2].name) : 'Geen bestand gevonden'}
+                          </p>
+                          {fileNames[2]?.modifiedAt && (
+                            <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                              {formatModifiedTime(fileNames[2].modifiedAt)}
+                            </p>
+                          )}
+                          <p className="text-[8px] sm:text-xs font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
+                            ↔ Schuif opzij voor meer data te zien
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                        <thead>
+                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                            {data3.length > 0 && Object.keys(data3[0]).map((key) => (
+                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                          {data3
+                            .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                            .map((row, i) => (
+                            <motion.tr 
+                              initial={{ opacity: 0, x: -5 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.02 }}
+                              key={i} 
+                              className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-emerald-50/30'}`}
+                            >
+                              {Object.values(row).map((val, j) => (
+                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                                  {val}
+                                </td>
+                              ))}
+                            </motion.tr>
+                          ))}
+                          {data3.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                            <tr>
+                              <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                                Geen gegevens gevonden voor "{searchTerm}".
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {/* Section 1 */}
               <section>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
@@ -432,7 +593,7 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Section 2 */}
+              {/* Section 3 - Gisteren */}
               <section>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
                   <div className="flex items-center gap-3">
