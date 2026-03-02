@@ -174,8 +174,8 @@ export default function App() {
         const [hours, minutes] = timeStr.split(':').map(Number);
         const tripMinutes = hours * 60 + minutes;
         
-        // Find the latest trip that has already started
-        if (tripMinutes <= nowMinutes && tripMinutes > lastPassedMinutes) {
+        // Find the latest trip that has already started, but only if it started less than 6 hours ago
+        if (tripMinutes <= nowMinutes && (nowMinutes - tripMinutes) < 360 && tripMinutes > lastPassedMinutes) {
           lastPassedMinutes = tripMinutes;
           activeIndex = index;
         }
@@ -234,12 +234,8 @@ export default function App() {
       <header className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-[#FFD200] border-black/5'} shadow-lg border-b sticky top-0 z-50 safe-top transition-colors duration-300`}>
         <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`${isDarkMode ? 'bg-white/10' : 'bg-white'} p-1.5 sm:p-2 rounded-xl shadow-sm transition-colors`}>
-              <Bus className={`w-6 h-6 sm:w-8 sm:h-8 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-            </div>
             <div>
-              <h1 className={`text-lg sm:text-2xl font-black tracking-tighter uppercase leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>De Lijn</h1>
-              <p className={`text-[10px] sm:text-xs font-bold opacity-70 uppercase tracking-widest mt-0.5 sm:mt-1 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Opzoeken voertuig chauffeur</p>
+              <p className={`text-xs sm:text-sm font-black opacity-70 uppercase tracking-widest ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice heeft steeds voorrang</p>
             </div>
           </div>
           
@@ -422,78 +418,94 @@ export default function App() {
                 );
               })()}
 
-              {/* Section 2 - Tomorrow */}
-              {data3.length > 0 && (
-                <section>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${isDarkMode ? 'bg-emerald-500/20' : 'bg-emerald-500'}`}>
-                        <Calendar className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-emerald-500' : 'text-white'}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className={`text-base sm:text-xl font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>Morgen</h2>
-                        <div className="flex flex-col">
-                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                            {fileNames[2] ? formatFileDate(fileNames[2].name) : 'Geen bestand gevonden'}
+              {/* Section 3 - Gisteren */}
+              <section>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                      <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Gisteren</h2>
+                      <div className="flex flex-col">
+                        <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">
+                          {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen tweede bestand gevonden'}
+                        </p>
+                        {fileNames[1]?.modifiedAt && (
+                          <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                            {formatModifiedTime(fileNames[1].modifiedAt)}
                           </p>
-                          {fileNames[2]?.modifiedAt && (
-                            <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                              {formatModifiedTime(fileNames[2].modifiedAt)}
-                            </p>
-                          )}
-                          <p className="text-[8px] sm:text-xs font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
-                            ↔ Schuif opzij voor meer data te zien
-                          </p>
-                        </div>
+                        )}
+                        <p className="text-[8px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                          ↔ Schuif opzij voor meer data te zien
+                        </p>
                       </div>
                     </div>
                   </div>
-                  
-                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
-                    <div className="overflow-x-auto scrollbar-hide">
-                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                        <thead>
-                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                            {data3.length > 0 && Object.keys(data3[0]).map((key) => (
-                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                {key}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
-                          {data3
-                            .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
-                            .map((row, i) => (
-                            <motion.tr 
-                              initial={{ opacity: 0, x: -5 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.02 }}
-                              key={i} 
-                              className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-emerald-50/30'}`}
-                            >
-                              {Object.values(row).map((val, j) => (
-                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                                  {val}
-                                </td>
-                              ))}
-                            </motion.tr>
+                </div>
+                
+                <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-lg border overflow-hidden opacity-90`}>
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                      <thead>
+                        <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                          {data2.length > 0 && Object.keys(data2[0]).map((key) => (
+                            <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                              {key}
+                            </th>
                           ))}
-                          {data3.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
-                            <tr>
-                              <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                                Geen gegevens gevonden voor "{searchTerm}".
+                        </tr>
+                      </thead>
+                      <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                        {data2
+                          .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((row, i) => (
+                          <motion.tr 
+                            initial={{ opacity: 0, x: -5 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            key={i} 
+                            className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
+                          >
+                            {Object.entries(row).map(([key, val], j) => (
+                              <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
+                                <div className="flex items-center gap-2">
+                                  {key === 'Lijn' && (
+                                    <Bus className="w-3 h-3 opacity-50" />
+                                  )}
+                                  {key === 'voertuig' && (
+                                    <Train className="w-3 h-3 opacity-50" />
+                                  )}
+                                  {key === 'Plaats' ? (
+                                    <a 
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                    >
+                                      {val}
+                                      <ExternalLink className="w-3 h-3 opacity-50" />
+                                    </a>
+                                  ) : val}
+                                </div>
                               </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            ))}
+                          </motion.tr>
+                        ))}
+                        {data2.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                          <tr>
+                            <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                              Geen gegevens gevonden voor "{searchTerm}".
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
-                </section>
-              )}
+                </div>
+              </section>
 
-              {/* Section 1 */}
+              {/* Section 1 - Vandaag */}
               <section>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
                   <div className="flex items-center gap-3">
@@ -555,7 +567,7 @@ export default function App() {
                                     isActive 
                                       ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
                                       : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
-                                  }`}>
+                                  } ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
                                     {isActive && j === 0 && (
                                       <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
                                     )}
@@ -563,7 +575,23 @@ export default function App() {
                                       {isActive && key === 'Uur' && (
                                         <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
                                       )}
-                                      {val}
+                                      {key === 'Lijn' && (
+                                        <Bus className="w-3 h-3 opacity-50" />
+                                      )}
+                                      {key === 'voertuig' && (
+                                        <Train className="w-3 h-3 opacity-50" />
+                                      )}
+                                      {key === 'Plaats' ? (
+                                        <a 
+                                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                        >
+                                          {val}
+                                          <ExternalLink className="w-3 h-3 opacity-50" />
+                                        </a>
+                                      ) : val}
                                       {isActive && key === 'Uur' && (
                                         <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
                                       )}
@@ -593,74 +621,94 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Section 3 - Gisteren */}
-              <section>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-200 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                      <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight text-gray-600 truncate">Gisteren</h2>
-                      <div className="flex flex-col">
-                        <p className="text-[10px] sm:text-sm font-bold text-gray-400 truncate">
-                          {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen tweede bestand gevonden'}
-                        </p>
-                        {fileNames[1]?.modifiedAt && (
-                          <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                            {formatModifiedTime(fileNames[1].modifiedAt)}
+              {/* Section 2 - Morgen */}
+              {data3.length > 0 && (
+                <section>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${isDarkMode ? 'bg-emerald-500/20' : 'bg-emerald-500'}`}>
+                        <Calendar className={`w-5 h-5 sm:w-6 sm:h-6 ${isDarkMode ? 'text-emerald-500' : 'text-white'}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className={`text-base sm:text-xl font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-emerald-500' : 'text-emerald-600'}`}>Morgen</h2>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                            {fileNames[2] ? formatFileDate(fileNames[2].name) : 'Geen bestand gevonden'}
                           </p>
-                        )}
-                        <p className="text-[8px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">
-                          ↔ Schuif opzij voor meer data te zien
-                        </p>
+                          {fileNames[2]?.modifiedAt && (
+                            <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                              {formatModifiedTime(fileNames[2].modifiedAt)}
+                            </p>
+                          )}
+                          <p className="text-[8px] sm:text-xs font-bold text-emerald-500 uppercase tracking-wider mt-0.5">
+                            ↔ Schuif opzij voor meer data te zien
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-                
-                <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-lg border overflow-hidden opacity-90`}>
-                  <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                      <thead>
-                        <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                          {data2.length > 0 && Object.keys(data2[0]).map((key) => (
-                            <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              {key}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
-                        {data2
-                          .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
-                          .map((row, i) => (
-                          <motion.tr 
-                            initial={{ opacity: 0, x: -5 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.02 }}
-                            key={i} 
-                            className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50'}`}
-                          >
-                            {Object.values(row).map((val, j) => (
-                              <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {val}
-                              </td>
+                  
+                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                        <thead>
+                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                            {data3.length > 0 && Object.keys(data3[0]).map((key) => (
+                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                {key}
+                              </th>
                             ))}
-                          </motion.tr>
-                        ))}
-                        {data2.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
-                          <tr>
-                            <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                              Geen gegevens gevonden voor "{searchTerm}".
-                            </td>
                           </tr>
-                        )}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                          {data3
+                            .filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()))
+                            .map((row, i) => (
+                            <motion.tr 
+                              initial={{ opacity: 0, x: -5 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.02 }}
+                              key={i} 
+                              className={`transition-colors ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-emerald-50/30'}`}
+                            >
+                            {Object.entries(row).map(([key, val], j) => (
+                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
+                                  <div className="flex items-center gap-2">
+                                    {key === 'Lijn' && (
+                                      <Bus className="w-3 h-3 opacity-50" />
+                                    )}
+                                    {key === 'voertuig' && (
+                                      <Train className="w-3 h-3 opacity-50" />
+                                    )}
+                                    {key === 'Plaats' ? (
+                                      <a 
+                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                      >
+                                        {val}
+                                        <ExternalLink className="w-3 h-3 opacity-50" />
+                                      </a>
+                                    ) : val}
+                                  </div>
+                                </td>
+                              ))}
+                            </motion.tr>
+                          ))}
+                          {data3.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                            <tr>
+                              <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                                Geen gegevens gevonden voor "{searchTerm}".
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              </section>
+                </section>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
