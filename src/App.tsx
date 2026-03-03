@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -554,7 +554,7 @@ export default function App() {
                   
                   const dienstadresStr = String(dienstadres);
                   const prefix = dienstadresStr.substring(0, 8);
-                  const pdfUrl = `/api/pdf/Ritblad/${prefix}`;
+                  const pdfUrl = `${window.location.origin}/api/pdf/Ritblad/${prefix}`;
 
                   return (
                     <motion.div 
@@ -562,7 +562,7 @@ export default function App() {
                       animate={{ opacity: 1, y: 0 }}
                       className={`mt-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border ${isDarkMode ? 'bg-[#1E1E1E] border-white/5 text-gray-300' : 'bg-white border-black/5 text-gray-700'} shadow-lg`}
                     >
-                      <div className="flex items-center justify-between mb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <div className="flex items-center gap-2">
                           <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/20'}`}>
                             <FileSpreadsheet className={`w-4 h-4 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
@@ -573,18 +573,41 @@ export default function App() {
                           href={pdfUrl} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-black/5 hover:bg-black/10 text-black'}`}
+                          className={`w-full sm:w-auto text-center text-[10px] sm:text-xs font-black uppercase tracking-widest px-6 py-3 sm:py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${
+                            isDarkMode 
+                              ? 'bg-[#FFD200] text-black hover:bg-[#FFD200]/90' 
+                              : 'bg-black text-white hover:bg-black/90'
+                          } shadow-lg active:scale-95`}
                         >
-                          Open in nieuw venster
-                          <ExternalLink className="w-3 h-3" />
+                          Bekijk Ritblad
+                          <ExternalLink className="w-3 h-3 sm:w-4 h-4" />
                         </a>
                       </div>
-                      <div className={`aspect-[1/1.4] w-full rounded-xl overflow-hidden border ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-black/5 bg-gray-50'}`}>
+                      
+                      {/* Iframe only on desktop/tablet, hidden on mobile for better UX */}
+                      <div className={`hidden sm:block aspect-[1/1.4] w-full rounded-xl overflow-hidden border ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-black/5 bg-gray-50'}`}>
                         <iframe 
                           src={pdfUrl} 
                           className="w-full h-full border-none"
                           title="Ritblad PDF"
                         />
+                      </div>
+
+                      {/* Mobile fallback hint */}
+                      <div className={`sm:hidden flex flex-col items-center justify-center py-10 px-6 text-center border-2 border-dashed rounded-2xl ${
+                        isDarkMode ? 'border-white/10 bg-white/5' : 'border-black/5 bg-gray-50'
+                      }`}>
+                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
+                          isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/10'
+                        }`}>
+                          <FileText className={`w-7 h-7 ${isDarkMode ? 'text-[#FFD200]' : 'text-[#FFD200]'}`} />
+                        </div>
+                        <h4 className={`text-sm font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          Ritblad beschikbaar
+                        </h4>
+                        <p className={`text-xs font-bold leading-relaxed max-w-[200px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          Klik op de knop hierboven om het volledige ritblad te openen.
+                        </p>
                       </div>
                     </motion.div>
                   );
