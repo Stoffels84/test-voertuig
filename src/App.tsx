@@ -537,6 +537,11 @@ export default function App() {
                 </div>
 
                 {(() => {
+                  // Check if it's Monday to Thursday (1-4)
+                  const day = new Date().getDay();
+                  const isMonToThu = day >= 1 && day <= 4;
+                  if (!isMonToThu) return null;
+
                   const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
                   const firstRow = filtered[0];
                   if (!firstRow) return null;
