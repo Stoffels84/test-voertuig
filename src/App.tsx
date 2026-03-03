@@ -22,6 +22,8 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
+  const [ritbladContent, setRitbladContent] = useState<string>("");
+  const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -619,6 +621,55 @@ export default function App() {
                     <div className="w-4 h-1 bg-gray-300 rounded-full" />
                   </div>
                 </div>
+
+                {(() => {
+                  const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                  const firstRow = filtered[0];
+                  if (!firstRow) return null;
+                  
+                  // Zoek naar DIENSTADRES (ongeacht hoofdletters)
+                  const dienstadresKey = Object.keys(firstRow).find(k => k.toUpperCase() === 'DIENSTADRES');
+                  const dienstadres = dienstadresKey ? firstRow[dienstadresKey] : null;
+                  
+                  if (!dienstadres) return null;
+                  
+                  const dienstadresStr = String(dienstadres);
+                  const prefix = dienstadresStr.substring(0, 8);
+                  const pdfUrl = `/api/pdf/Ritblad/${prefix}`;
+
+                  return (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mt-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border ${isDarkMode ? 'bg-[#1E1E1E] border-white/5 text-gray-300' : 'bg-white border-black/5 text-gray-700'} shadow-lg`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/20'}`}>
+                            <FileSpreadsheet className={`w-4 h-4 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+                          </div>
+                          <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest">Ritblad PDF ({prefix}...)</h3>
+                        </div>
+                        <a 
+                          href={pdfUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className={`text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors ${isDarkMode ? 'bg-white/5 hover:bg-white/10 text-white' : 'bg-black/5 hover:bg-black/10 text-black'}`}
+                        >
+                          Open in nieuw venster
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                      <div className={`aspect-[1/1.4] w-full rounded-xl overflow-hidden border ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-black/5 bg-gray-50'}`}>
+                        <iframe 
+                          src={pdfUrl} 
+                          className="w-full h-full border-none"
+                          title="Ritblad PDF"
+                        />
+                      </div>
+                    </motion.div>
+                  );
+                })()}
               </section>
 
               {/* Section 2 - Morgen */}

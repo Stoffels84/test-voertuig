@@ -73,7 +73,7 @@ app.get("/api/data", async (req, res) => {
         "Uur": "08:00",
         "voertuig": "T01",
         "wissel": "Nee",
-        "Dienstadres": "Gent",
+        "DIENSTADRES": "20240301_RITBLAD_A",
         "Plaats": "Korenmarkt",
         "richting": "Zwijnaarde"
       };
@@ -232,6 +232,44 @@ app.get("/api/data", async (req, res) => {
   } catch (err: any) {
     console.error("FTP Error:", err);
     res.status(500).json({ success: false, error: err.message });
+  } finally {
+    client.close();
+  }
+});
+
+app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
+  if (!process.env.FTP_HOST) {
+    return res.status(404).send("FTP not configured");
+  }
+
+  const client = new Client();
+  try {
+    await client.access({
+      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,
+      password: process.env.FTP_PASSWORD,
+      port: parseInt(process.env.FTP_PORT || "21"),
+      secure: process.env.FTP_SECURE === "true",
+    });
+
+    const prefix = req.params.filename.substring(0, 8);
+    const list = await client.list("/Ritblad");
+    const matchingFile = list.find(f => f.name.startsWith(prefix) && f.name.toLowerCase().endsWith(".pdf"));
+
+    if (!matchingFile) {
+      return res.status(404).send("File not found starting with prefix: " + prefix);
+    }
+
+    const remotePath = `/Ritblad/${matchingFile.name}`;
+    
+    // Set headers for PDF
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${matchingFile.name}"`);
+
+    await client.downloadTo(res, remotePath);
+  } catch (err: any) {
+    console.error("FTP PDF Error:", err);
+    res.status(404).send("File not found");
   } finally {
     client.close();
   }
