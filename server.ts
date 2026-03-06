@@ -38,6 +38,13 @@ app.get("/api/visitor-count", (req, res) => {
   }
 });
 
+const getFtpSecure = () => {
+  const val = process.env.FTP_SECURE;
+  if (val === "true") return true;
+  if (val === "implicit") return "implicit";
+  return false;
+};
+
 // API endpoint to check FTP connection status
 app.get("/api/status", async (req, res) => {
   const client = new Client();
@@ -47,9 +54,7 @@ app.get("/api/status", async (req, res) => {
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
     const port = parseInt(process.env.FTP_PORT || "21");
-    let secure: boolean | "implicit" = false;
-    if (process.env.FTP_SECURE === "true") secure = true;
-    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
+    const secure = getFtpSecure();
 
     if (!host || !user || !password) {
       return res.json({ success: false, message: "FTP inloggegevens ontbreken in Vercel Environment Variables", isMock: true });
@@ -79,7 +84,7 @@ app.get("/api/data", async (req, res) => {
 
   const requestedColumns = [
     "personeelnummer", "naam", "Loop", "Lijn", "Uur", 
-    "voertuig", "wissel", "Dienstadres", "Plaats", "richting"
+    "voertuig", "wissel", "Plaats", "richting"
   ];
 
   try {
@@ -87,10 +92,15 @@ app.get("/api/data", async (req, res) => {
     const user = process.env.FTP_USER;
     const password = process.env.FTP_PASSWORD;
     const port = parseInt(process.env.FTP_PORT || "21");
-    let secure: boolean | "implicit" = false;
-    if (process.env.FTP_SECURE === "true") secure = true;
-    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
+    const secure = getFtpSecure();
     const ftpDir = process.env.FTP_DIR || "/steekkaart";
+
+    // Get today's date in YYYYMMDD format (Belgium timezone)
+    const now = new Date();
+    const belgiumTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Brussels" }));
+    const todayStr = belgiumTime.getFullYear().toString() + 
+                     (belgiumTime.getMonth() + 1).toString().padStart(2, '0') + 
+                     belgiumTime.getDate().toString().padStart(2, '0');
 
     if (!host || !user || !password) {
       console.log("FTP credentials missing, returning mock data");
@@ -110,14 +120,8 @@ app.get("/api/data", async (req, res) => {
       return res.json({
         success: true,
         isMock: true,
-        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890", naam: "Piet Pieters" }],
-        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223", naam: "Klaas Klaassen" }],
-        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556", naam: "Bart Baart" }],
-        fileNames: [
-          { name: "20240301_dienst.xlsx", modifiedAt: new Date().toISOString() }, 
-          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() },
-          { name: "20240302_dienst.xlsx", modifiedAt: new Date().toISOString() }
-        ]
+        data: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890", naam: "Piet Pieters" }],
+        fileName: { name: `${todayStr}_dienst.xlsx`, modifiedAt: new Date().toISOString() }
       });
     }
 
@@ -128,30 +132,6 @@ app.get("/api/data", async (req, res) => {
       port,
       secure: secure as any
     });
-
-    // Get today's date in YYYYMMDD format (Belgium timezone)
-    const now = new Date();
-    const belgiumTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Brussels" }));
-    const todayStr = belgiumTime.getFullYear().toString() + 
-                     (belgiumTime.getMonth() + 1).toString().padStart(2, '0') + 
-                     belgiumTime.getDate().toString().padStart(2, '0');
-
-    // List files and find the 3 most recent ones starting with yyyymmdd
-    const list = await client.list(ftpDir);
-    const xlsxFiles = list
-      .filter(f => {
-        const name = f.name.toLowerCase();
-        const dateMatch = f.name.match(/^(\d{8})/);
-        const isExcel = name.endsWith(".xlsx");
-        return dateMatch && isExcel;
-      })
-      .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
-      .slice(0, 3);
-
-    if (xlsxFiles.length === 0) {
-      const allFiles = list.map(f => f.name).join(", ");
-      throw new Error(`Geen .xlsx bestanden gevonden die beginnen met 8 cijfers in map: ${ftpDir}. Gevonden bestanden: ${allFiles || "geen"}`);
-    }
 
     const fetchData = async (fileName: string) => {
       const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
@@ -167,12 +147,10 @@ app.get("/api/data", async (req, res) => {
       const buffer = Buffer.concat(chunks);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       
-      // Look for "Dienstlijst" sheet
       const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === "dienstlijst") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-      // Helper to format Excel time (decimal) to HH:mm
       const formatExcelTime = (val: any) => {
         if (typeof val !== 'number') return val || "";
         const totalMinutes = Math.round(val * 24 * 60);
@@ -181,11 +159,8 @@ app.get("/api/data", async (req, res) => {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       };
 
-      // Filter columns and handle renaming/formatting
       return rawData.map(row => {
         const filteredRow: any = {};
-        
-        // Find keys in row case-insensitively
         const findValue = (targetKey: string) => {
           const key = Object.keys(row).find(k => k.toLowerCase().trim() === targetKey.toLowerCase().trim());
           return key ? row[key] : undefined;
@@ -193,12 +168,9 @@ app.get("/api/data", async (req, res) => {
 
         requestedColumns.forEach(col => {
           let value = findValue(col);
-          
-          // Fallback for personeelnummer/personeelsnummer
           if (value === undefined && col === "personeelnummer") {
             value = findValue("personeelsnummer");
           }
-
           if (col === "Uur") {
             filteredRow[col] = formatExcelTime(value);
           } else {
@@ -209,108 +181,29 @@ app.get("/api/data", async (req, res) => {
       });
     };
 
-    // Map results to data1 (today/latest), data2 (yesterday/previous), data3 (tomorrow/future)
-    // Actually we sort by date descending, so:
-    // xlsxFiles[0] is the latest (could be tomorrow if exists)
-    // xlsxFiles[1] is today
-    // xlsxFiles[2] is yesterday
-    
-    // Let's find today's file index
-    const todayIndex = xlsxFiles.findIndex(f => f.name.startsWith(todayStr));
-    
-    let data1: any[] = []; // Today
-    let data2: any[] = []; // Yesterday
-    let data3: any[] = []; // Tomorrow
-    let fileNames: any[] = [];
+    // List files and find ONLY the one starting with today's date
+    const list = await client.list(ftpDir);
+    const todayFile = list.find(f => f.name.startsWith(todayStr) && f.name.toLowerCase().endsWith(".xlsx"));
 
-    if (todayIndex !== -1) {
-      // Today exists
-      data1 = await fetchData(xlsxFiles[todayIndex].name);
-      fileNames[0] = { name: xlsxFiles[todayIndex].name, modifiedAt: xlsxFiles[todayIndex].modifiedAt };
-      
-      // Yesterday is likely todayIndex + 1
-      if (xlsxFiles[todayIndex + 1]) {
-        data2 = await fetchData(xlsxFiles[todayIndex + 1].name);
-        fileNames[1] = { name: xlsxFiles[todayIndex + 1].name, modifiedAt: xlsxFiles[todayIndex + 1].modifiedAt };
-      }
-      
-      // Tomorrow is likely todayIndex - 1
-      if (todayIndex > 0 && xlsxFiles[todayIndex - 1]) {
-        data3 = await fetchData(xlsxFiles[todayIndex - 1].name);
-        fileNames[2] = { name: xlsxFiles[todayIndex - 1].name, modifiedAt: xlsxFiles[todayIndex - 1].modifiedAt };
-      }
-    } else {
-      // If today doesn't exist, just take the top 3 as they are
-      if (xlsxFiles[0]) {
-        data1 = await fetchData(xlsxFiles[0].name);
-        fileNames[0] = { name: xlsxFiles[0].name, modifiedAt: xlsxFiles[0].modifiedAt };
-      }
-      if (xlsxFiles[1]) {
-        data2 = await fetchData(xlsxFiles[1].name);
-        fileNames[1] = { name: xlsxFiles[1].name, modifiedAt: xlsxFiles[1].modifiedAt };
-      }
-      if (xlsxFiles[2]) {
-        data3 = await fetchData(xlsxFiles[2].name);
-        fileNames[2] = { name: xlsxFiles[2].name, modifiedAt: xlsxFiles[2].modifiedAt };
-      }
+    if (!todayFile) {
+      return res.json({
+        success: true,
+        data: [],
+        fileName: null,
+        message: `Geen bestand gevonden voor vandaag (${todayStr})`
+      });
     }
+
+    const data = await fetchData(todayFile.name);
 
     res.json({
       success: true,
-      data1,
-      data2,
-      data3,
-      fileNames
+      data,
+      fileName: { name: todayFile.name, modifiedAt: todayFile.modifiedAt }
     });
   } catch (err: any) {
     console.error("FTP Error:", err);
     res.status(500).json({ success: false, error: err.message });
-  } finally {
-    client.close();
-  }
-});
-
-app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
-  if (!process.env.FTP_HOST) {
-    return res.status(404).send("FTP not configured");
-  }
-
-  const client = new Client();
-  try {
-    await client.access({
-      host: process.env.FTP_HOST,
-      user: process.env.FTP_USER,
-      password: process.env.FTP_PASSWORD,
-      port: parseInt(process.env.FTP_PORT || "21"),
-      secure: process.env.FTP_SECURE === "true",
-    });
-
-    // Bepaal de map op basis van de dag van de week
-    const day = new Date().getDay(); // 0=Zondag, 1=Maandag, ..., 5=Vrijdag, 6=Zaterdag
-    let folder = "/Ritblad"; // Standaard voor Ma-Do
-    
-    if (day === 5) folder = "/Ritbladvrijdag";
-    else if (day === 6) folder = "/Ritbladzaterdag";
-    else if (day === 0) folder = "/Ritbladzondag";
-
-    const prefix = req.params.filename.substring(0, 8);
-    const list = await client.list(folder);
-    const matchingFile = list.find(f => f.name.startsWith(prefix) && f.name.toLowerCase().endsWith(".pdf"));
-
-    if (!matchingFile) {
-      return res.status(404).send(`File not found in ${folder} starting with prefix: ${prefix}`);
-    }
-
-    const remotePath = `${folder}/${matchingFile.name}`;
-    
-    // Set headers for PDF
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${matchingFile.name}"`);
-
-    await client.downloadTo(res, remotePath);
-  } catch (err: any) {
-    console.error("FTP PDF Error:", err);
-    res.status(404).send("File not found");
   } finally {
     client.close();
   }

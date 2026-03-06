@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
 }
 
 export default function App() {
-  const [data1, setData1] = useState<TransportData[]>([]);
-  const [data2, setData2] = useState<TransportData[]>([]);
-  const [data3, setData3] = useState<TransportData[]>([]);
-  const [fileNames, setFileNames] = useState<{ name: string; modifiedAt?: string }[]>([]);
+  const [data, setData] = useState<TransportData[]>([]);
+  const [fileName, setFileName] = useState<{ name: string; modifiedAt?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMock, setIsMock] = useState(false);
@@ -22,16 +20,18 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
-  const [ritbladContent, setRitbladContent] = useState<string>("");
-  const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
-  const filteredData1 = data1.filter(row => {
+  const filterData = (data: TransportData[]) => {
     const s = searchTerm.toLowerCase();
-    return String(row.personeelnummer || '').toLowerCase().includes(s) || 
-           String(row.naam || '').toLowerCase().includes(s) ||
-           String(row.voertuig || '').toLowerCase().includes(s);
-  });
+    return data.filter(row => 
+      String(row.personeelnummer || '').toLowerCase().includes(s) || 
+      String(row.naam || '').toLowerCase().includes(s) ||
+      String(row.voertuig || '').toLowerCase().includes(s)
+    );
+  };
+
+  const filteredData = filterData(data);
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -121,11 +121,12 @@ export default function App() {
       const response = await fetch('/api/data');
       const result = await response.json();
       if (result.success) {
-        setData1(result.data1);
-        setData2(result.data2);
-        setData3(result.data3 || []);
-        setFileNames(result.fileNames || []);
+        setData(result.data || []);
+        setFileName(result.fileName);
         setIsMock(!!result.isMock);
+        if (result.message && result.data.length === 0) {
+          setError(result.message);
+        }
       } else {
         setError(result.error || 'Fout bij het ophalen van gegevens');
       }
@@ -417,8 +418,7 @@ export default function App() {
             <div className="flex flex-col items-center justify-center py-20">
               <RefreshCw className="w-10 h-10 text-[#FFD200] animate-spin mb-4" />
               <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Gegevens ophalen van De Lijn...</p>
-            </div>
-          ) : searchTerm.length < 4 ? (
+            </div>          ) : searchTerm.length < 4 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
                 <Search className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
@@ -432,18 +432,18 @@ export default function App() {
                   : 'Vul een personeelnummer, naam of voertuig in om de dienstlijst te bekijken.'}
               </p>
             </div>
-          ) : data1.length > 0 ? (
+          ) : data.length > 0 ? (
               <>
                 {/* Next Service Banner */}
                 {(() => {
-                  const nextTrip = getNextTrip(filteredData1);
+                  const nextTrip = getNextTrip(filteredData);
                   if (!nextTrip || !searchTerm) return null;
 
                   return (
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
+                      className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all mb-8 ${
                         isDarkMode 
                           ? 'bg-[#FFD200]/10 border-[#FFD200]/20' 
                           : 'bg-[#FFD200] border-black/5'
@@ -480,7 +480,7 @@ export default function App() {
                 })()}
 
 
-                {/* Section 1 - Vandaag */}
+                {/* Section - Data */}
                 <section>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
                     <div className="flex items-center gap-3">
@@ -489,20 +489,20 @@ export default function App() {
                       </div>
                       <div className="min-w-0">
                         <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
-                          Resultaten voor "{searchTerm}"
+                          Dienstlijst Vandaag voor "{searchTerm}"
                         </h2>
                         <div className="flex flex-col">
                           <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                            {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
+                            {fileName ? formatFileDate(fileName.name) : 'Geen bestand gevonden'}
                           </p>
-                          {fileNames[0] && (
+                          {fileName && (
                             <p className="text-[8px] sm:text-[10px] font-mono text-gray-400 truncate opacity-70">
-                              Bestand: {fileNames[0].name}
+                              Bestand: {fileName.name}
                             </p>
                           )}
-                          {fileNames[0]?.modifiedAt && (
+                          {fileName?.modifiedAt && (
                             <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                              Laatst bijgewerkt: {formatModifiedTime(fileNames[0].modifiedAt)}
+                              Laatst bijgewerkt: {formatModifiedTime(fileName.modifiedAt)}
                             </p>
                           )}
                         </div>
@@ -515,7 +515,7 @@ export default function App() {
                       <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                         <thead>
                           <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                            {data1.length > 0 && Object.keys(data1[0]).map((key) => (
+                            {data.length > 0 && Object.keys(data[0]).map((key) => (
                               <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
                                 {key}
                               </th>
@@ -524,9 +524,9 @@ export default function App() {
                         </thead>
                         <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
                           {(() => {
-                            const activeIndex = getActiveTripIndex(filteredData1);
+                            const activeIndex = getActiveTripIndex(filteredData);
                             
-                            return filteredData1.map((row, i) => {
+                            return filteredData.map((row, i) => {
                               const isActive = i === activeIndex;
                               return (
                                 <motion.tr 
@@ -580,10 +580,10 @@ export default function App() {
                               );
                             });
                           })()}
-                          {filteredData1.length === 0 && !loading && (
+                          {filteredData.length === 0 && !loading && (
                             <tr>
                               <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                                Geen gegevens gevonden voor "{searchTerm}".
+                                Geen gegevens gevonden voor "{searchTerm}" in het bestand van vandaag.
                               </td>
                             </tr>
                           )}
@@ -597,81 +597,7 @@ export default function App() {
                       <div className="w-4 h-1 bg-gray-300 rounded-full" />
                     </div>
                   </div>
-
-                  {(() => {
-                    const firstRow = filteredData1[0];
-                    if (!firstRow || !searchTerm) return null;
-                  
-                  // Zoek naar DIENSTADRES (ongeacht hoofdletters)
-                  const dienstadresKey = Object.keys(firstRow).find(k => k.toUpperCase() === 'DIENSTADRES');
-                  const dienstadres = dienstadresKey ? firstRow[dienstadresKey] : null;
-                  
-                  if (!dienstadres) return null;
-                  
-                  const dienstadresStr = String(dienstadres);
-                  const prefix = dienstadresStr.substring(0, 8);
-                  const pdfUrl = `${window.location.origin}/api/pdf/Ritblad/${prefix}`;
-
-                  const day = new Date().getDay();
-                  const folderName = day === 5 ? "Ritbladvrijdag" : day === 6 ? "Ritbladzaterdag" : day === 0 ? "Ritbladzondag" : "Ritblad";
-
-                  return (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`mt-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl border ${isDarkMode ? 'bg-[#1E1E1E] border-white/5 text-gray-300' : 'bg-white border-black/5 text-gray-700'} shadow-lg`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-2">
-                          <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/20'}`}>
-                            <FileSpreadsheet className={`w-4 h-4 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-                          </div>
-                          <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest">{folderName} PDF ({prefix}...)</h3>
-                        </div>
-                        <a 
-                          href={pdfUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className={`w-full sm:w-auto text-center text-[10px] sm:text-xs font-black uppercase tracking-widest px-6 py-3 sm:py-2 rounded-xl flex items-center justify-center gap-2 transition-all ${
-                            isDarkMode 
-                              ? 'bg-[#FFD200] text-black hover:bg-[#FFD200]/90' 
-                              : 'bg-black text-white hover:bg-black/90'
-                          } shadow-lg active:scale-95`}
-                        >
-                          Bekijk Ritblad
-                          <ExternalLink className="w-3 h-3 sm:w-4 h-4" />
-                        </a>
-                      </div>
-                      
-                      {/* Iframe only on desktop/tablet, hidden on mobile for better UX */}
-                      <div className={`hidden sm:block aspect-[1/1.4] w-full rounded-xl overflow-hidden border ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-black/5 bg-gray-50'}`}>
-                        <iframe 
-                          src={pdfUrl} 
-                          className="w-full h-full border-none"
-                          title="Ritblad PDF"
-                        />
-                      </div>
-
-                      {/* Mobile fallback hint */}
-                      <div className={`sm:hidden flex flex-col items-center justify-center py-10 px-6 text-center border-2 border-dashed rounded-2xl ${
-                        isDarkMode ? 'border-white/10 bg-white/5' : 'border-black/5 bg-gray-50'
-                      }`}>
-                        <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${
-                          isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/10'
-                        }`}>
-                          <FileText className={`w-7 h-7 ${isDarkMode ? 'text-[#FFD200]' : 'text-[#FFD200]'}`} />
-                        </div>
-                        <h4 className={`text-sm font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                          Ritblad beschikbaar
-                        </h4>
-                        <p className={`text-xs font-bold leading-relaxed max-w-[200px] ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          Klik op de knop hierboven om het volledige ritblad te openen.
-                        </p>
-                      </div>
-                    </motion.div>
-                  );
-                })()}
-              </section>
+                </section>
 
             </>
           ) : (
