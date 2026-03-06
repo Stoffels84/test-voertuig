@@ -148,6 +148,9 @@ app.get("/api/data", async (req, res) => {
 
       if (rawData.length > 0) {
         console.log(`Excel ${fileName} geladen. Kolommen:`, Object.keys(rawData[0]));
+      } else {
+        console.log(`Excel ${fileName} is leeg.`);
+        return [];
       }
 
       // Helper to format Excel time (decimal) to HH:mm
@@ -164,8 +167,18 @@ app.get("/api/data", async (req, res) => {
         const filteredRow: any = {};
         requestedColumns.forEach(col => {
           const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
-          // Try to find the column with case-insensitive match
-          const key = Object.keys(row).find(k => k.toLowerCase().trim() === col.toLowerCase().trim());
+          // Try to find the column with case-insensitive match and ignoring spaces
+          const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_.]/g, '');
+          const normalizedCol = normalize(col);
+          
+          let key = Object.keys(row).find(k => normalize(k) === normalizedCol);
+          
+          // Special case for personnel number variations if standard match fails
+          if (!key && col === "personeelsnummer") {
+            const variations = ["personeelnummer", "persnr", "pnummer", "stamnummer", "personeelsnr"];
+            key = Object.keys(row).find(k => variations.includes(normalize(k)));
+          }
+
           let value = key ? row[key] : "";
           
           if (col === "Uur") {
