@@ -128,6 +128,7 @@ app.get("/api/data", async (req, res) => {
     }
 
     const fetchData = async (fileName: string) => {
+      console.log(`Fetching file: ${fileName}`);
       const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
       const chunks: Buffer[] = [];
       const writable = new Writable({
@@ -139,6 +140,7 @@ app.get("/api/data", async (req, res) => {
 
       await client.downloadTo(writable, filePath);
       const buffer = Buffer.concat(chunks);
+      console.log(`File ${fileName} downloaded, size: ${buffer.length} bytes`);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       
       // Look for "Dienstlijst" sheet
@@ -246,12 +248,16 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
 
   const client = new Client();
   try {
+    let secure: boolean | "implicit" = false;
+    if (process.env.FTP_SECURE === "true") secure = true;
+    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
+
     await client.access({
       host: process.env.FTP_HOST,
       user: process.env.FTP_USER,
       password: process.env.FTP_PASSWORD,
       port: parseInt(process.env.FTP_PORT || "21"),
-      secure: process.env.FTP_SECURE === "true",
+      secure: secure as any,
     });
 
     // Bepaal de map op basis van de dag van de week
@@ -300,6 +306,7 @@ app.post("/api/increment-search", (req, res) => {
 
 // Vite middleware for development
 async function setupVite() {
+  console.log("Setting up Vite middleware...");
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");
     const vite = await createServer({
@@ -307,19 +314,30 @@ async function setupVite() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    console.log("Vite middleware attached.");
   } else {
     app.use(express.static("dist"));
+    console.log("Serving static files from dist.");
   }
 }
 
-setupVite();
-
-// Start server if not running on Vercel
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  const PORT = 3000;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+// Start server
+async function startServer() {
+  try {
+    await setupVite();
+    
+    if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+      const PORT = 3000;
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server running on http://0.0.0.0:${PORT}`);
+      });
+    }
+  } catch (err) {
+    console.error("Failed to start server:", err);
+    process.exit(1);
+  }
 }
+
+startServer();
 
 export default app;

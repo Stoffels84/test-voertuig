@@ -111,7 +111,21 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
+      console.log('Fetching data from /api/data...');
       const response = await fetch('/api/data');
+      
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Server responded with error:', response.status, text);
+        try {
+          const json = JSON.parse(text);
+          setError(json.error || `Server fout: ${response.status}`);
+        } catch (e) {
+          setError(`Server fout (${response.status}): ${text.substring(0, 100)}`);
+        }
+        return;
+      }
+
       const result = await response.json();
       if (result.success) {
         setData1(result.data1);
@@ -123,11 +137,18 @@ export default function App() {
       }
       
       // Fetch search count
-      const countRes = await fetch('/api/search-count');
-      const countData = await countRes.json();
-      setTotalSearches(countData.count);
-    } catch (err) {
-      setError('Kon geen verbinding maken met de server');
+      try {
+        const countRes = await fetch('/api/search-count');
+        if (countRes.ok) {
+          const countData = await countRes.json();
+          setTotalSearches(countData.count);
+        }
+      } catch (e) {
+        console.error('Error fetching search count:', e);
+      }
+    } catch (err: any) {
+      console.error('Fetch error:', err);
+      setError(`Verbindingsfout: ${err.message || 'Kon geen verbinding maken met de server'}`);
     } finally {
       setLoading(false);
     }
