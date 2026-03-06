@@ -7,11 +7,16 @@ import Database from "better-sqlite3";
 
 dotenv.config();
 
-const db = new Database("visitors.db");
-db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
-const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
-if (!row) {
-  db.prepare("INSERT INTO stats (id, count) VALUES (1, 0)").run();
+let db: any;
+try {
+  db = new Database("visitors.db");
+  db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
+  const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
+  if (!row) {
+    db.prepare("INSERT INTO stats (id, count) VALUES (1, 0)").run();
+  }
+} catch (dbErr) {
+  console.error("Database initialization failed:", dbErr);
 }
 
 const app = express();
@@ -20,9 +25,13 @@ app.use(express.json());
 // API endpoint for visitor counter
 app.get("/api/visitor-count", (req, res) => {
   try {
-    db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
-    const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
-    res.json({ count: stats.count });
+    if (db) {
+      db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
+      const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
+      res.json({ count: stats.count });
+    } else {
+      res.json({ count: 0, warning: "Database not available" });
+    }
   } catch (err) {
     console.error("Visitor Count Error:", err);
     res.status(500).json({ error: "Failed to update visitor count" });
@@ -319,12 +328,10 @@ async function setupVite() {
 
 setupVite();
 
-// Start server if not running on Vercel
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  const PORT = 3000;
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
+// Start server
+const PORT = 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+});
 
 export default app;
