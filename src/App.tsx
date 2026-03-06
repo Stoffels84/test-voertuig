@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
 
@@ -24,6 +24,8 @@ export default function App() {
   const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
   const [ritbladContent, setRitbladContent] = useState<string>("");
   const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
+  const [totalSearches, setTotalSearches] = useState<number>(0);
+  const lastCountedSearch = useRef<string>("");
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -121,12 +123,35 @@ export default function App() {
       } else {
         setError(result.error || 'Fout bij het ophalen van gegevens');
       }
+      
+      // Fetch search count
+      const countRes = await fetch('/api/search-count');
+      const countData = await countRes.json();
+      setTotalSearches(countData.count);
     } catch (err) {
       setError('Kon geen verbinding maken met de server');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const incrementSearch = async () => {
+      if (searchTerm.length >= 4 && searchTerm !== lastCountedSearch.current) {
+        try {
+          const res = await fetch('/api/increment-search', { method: 'POST' });
+          const data = await res.json();
+          if (data.success) {
+            setTotalSearches(data.count);
+            lastCountedSearch.current = searchTerm;
+          }
+        } catch (err) {
+          console.error('Error incrementing search count:', err);
+        }
+      }
+    };
+    incrementSearch();
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchData();
@@ -537,11 +562,6 @@ export default function App() {
                 </div>
 
                 {(() => {
-                  // Check if it's Monday to Thursday (1-4)
-                  const day = new Date().getDay();
-                  const isMonToThu = day >= 1 && day <= 4;
-                  if (!isMonToThu) return null;
-
                   const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
                   const firstRow = filtered[0];
                   if (!firstRow) return null;
@@ -556,6 +576,9 @@ export default function App() {
                   const prefix = dienstadresStr.substring(0, 8);
                   const pdfUrl = `${window.location.origin}/api/pdf/Ritblad/${prefix}`;
 
+                  const day = new Date().getDay();
+                  const folderName = day === 5 ? "Ritbladvrijdag" : day === 6 ? "Ritbladzaterdag" : day === 0 ? "Ritbladzondag" : "Ritblad";
+
                   return (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
@@ -567,7 +590,7 @@ export default function App() {
                           <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-[#FFD200]/10' : 'bg-[#FFD200]/20'}`}>
                             <FileSpreadsheet className={`w-4 h-4 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
                           </div>
-                          <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest">Ritblad PDF ({prefix}...)</h3>
+                          <h3 className="text-xs sm:text-sm font-black uppercase tracking-widest">{folderName} PDF ({prefix}...)</h3>
                         </div>
                         <a 
                           href={pdfUrl} 
@@ -631,6 +654,27 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Search Counter Footer */}
+        <footer className={`mt-12 mb-8 text-center py-6 border-t ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+          <div className="inline-flex flex-col items-center gap-2">
+            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${
+              isDarkMode ? 'bg-white/5 text-gray-500' : 'bg-black/5 text-gray-400'
+            }`}>
+              Live Statistieken
+            </div>
+            <div className="flex items-center gap-3">
+              <div className={`text-2xl sm:text-3xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                {totalSearches.toLocaleString('nl-BE')}
+              </div>
+              <div className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest text-left leading-tight ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
+                Totaal aantal<br />opzoekingen
+              </div>
+            </div>
+          </div>
+        </footer>
       </main>
     </div>
   );

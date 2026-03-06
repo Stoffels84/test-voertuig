@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+let searchCount = 0;
+
 const app = express();
 app.use(express.json());
 
@@ -252,15 +254,23 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
       secure: process.env.FTP_SECURE === "true",
     });
 
+    // Bepaal de map op basis van de dag van de week
+    const day = new Date().getDay(); // 0=Zondag, 1=Maandag, ..., 5=Vrijdag, 6=Zaterdag
+    let folder = "/Ritblad"; // Standaard voor Ma-Do
+    
+    if (day === 5) folder = "/Ritbladvrijdag";
+    else if (day === 6) folder = "/Ritbladzaterdag";
+    else if (day === 0) folder = "/Ritbladzondag";
+
     const prefix = req.params.filename.substring(0, 8);
-    const list = await client.list("/Ritblad");
+    const list = await client.list(folder);
     const matchingFile = list.find(f => f.name.startsWith(prefix) && f.name.toLowerCase().endsWith(".pdf"));
 
     if (!matchingFile) {
-      return res.status(404).send("File not found starting with prefix: " + prefix);
+      return res.status(404).send(`File not found in ${folder} starting with prefix: ${prefix}`);
     }
 
-    const remotePath = `/Ritblad/${matchingFile.name}`;
+    const remotePath = `${folder}/${matchingFile.name}`;
     
     // Set headers for PDF
     res.setHeader('Content-Type', 'application/pdf');
@@ -273,6 +283,17 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
   } finally {
     client.close();
   }
+});
+
+// API endpoint to get search count
+app.get("/api/search-count", (req, res) => {
+  res.json({ count: searchCount });
+});
+
+// API endpoint to increment search count
+app.post("/api/increment-search", (req, res) => {
+  searchCount++;
+  res.json({ success: true, count: searchCount });
 });
 
 // Vite middleware for development
