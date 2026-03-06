@@ -78,7 +78,7 @@ app.get("/api/data", async (req, res) => {
   client.ftp.verbose = true;
 
   const requestedColumns = [
-    "personeelsnummer", "naam", "Loop", "Lijn", "Uur", 
+    "personeelnummer", "naam", "Loop", "Lijn", "Uur", 
     "voertuig", "wissel", "Dienstadres", "Plaats", "richting"
   ];
 
@@ -192,18 +192,17 @@ app.get("/api/data", async (req, res) => {
         };
 
         requestedColumns.forEach(col => {
-          const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
           let value = findValue(col);
           
-          // If not found by original name, try the target name too
-          if (value === undefined && targetKey !== col) {
-            value = findValue(targetKey);
+          // Fallback for personeelnummer/personeelsnummer
+          if (value === undefined && col === "personeelnummer") {
+            value = findValue("personeelsnummer");
           }
 
           if (col === "Uur") {
-            filteredRow[targetKey] = formatExcelTime(value);
+            filteredRow[col] = formatExcelTime(value);
           } else {
-            filteredRow[targetKey] = value || "";
+            filteredRow[col] = value || "";
           }
         });
         return filteredRow;

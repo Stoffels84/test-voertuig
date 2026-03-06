@@ -495,9 +495,14 @@ export default function App() {
                           <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
                             {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
                           </p>
+                          {fileNames[0] && (
+                            <p className="text-[8px] sm:text-[10px] font-mono text-gray-400 truncate opacity-70">
+                              Bestand: {fileNames[0].name}
+                            </p>
+                          )}
                           {fileNames[0]?.modifiedAt && (
                             <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                              {formatModifiedTime(fileNames[0].modifiedAt)}
+                              Laatst bijgewerkt: {formatModifiedTime(fileNames[0].modifiedAt)}
                             </p>
                           )}
                         </div>
