@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users, Database, Mail, Phone, User, Hash, Briefcase, Shield, CalendarDays, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users, Database, Mail, Phone, User, Hash, Briefcase, Shield, CalendarDays, LayoutGrid, Table as TableIcon, MapPin } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -511,171 +511,205 @@ export default function App() {
                 {/* Section - Data */}
                 <section className="space-y-4">
                   {viewMode === 'table' ? (
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                          <Calendar className="w-5 h-5 sm:w-6 h-6 text-black" />
-                        </div>
-                        <div className="min-w-0">
-                          <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
-                            Dienstlijst Vandaag voor "{searchTerm}"
-                          </h2>
-                          <div className="flex flex-col">
-                            <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                              {fileName ? formatFileDate(fileName.name) : 'Geen bestand gevonden'}
-                            </p>
-                            {fileName && (
-                              <p className="text-[8px] sm:text-[10px] font-mono text-gray-400 truncate opacity-70">
-                                BRON: {fileName.name}
+                    <>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                            <Calendar className="w-5 h-5 sm:w-6 h-6 text-black" />
+                          </div>
+                          <div className="min-w-0">
+                            <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
+                              Dienstlijst Vandaag voor "{searchTerm}"
+                            </h2>
+                            <div className="flex flex-col">
+                              <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                                {fileName ? formatFileDate(fileName.name) : 'Geen bestand gevonden'}
                               </p>
-                            )}
+                              {fileName && (
+                                <p className="text-[8px] sm:text-[10px] font-mono text-gray-400 truncate opacity-70">
+                                  BRON: {fileName.name}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="bg-[#FFD200] rounded-t-2xl p-4 flex items-center justify-between shadow-sm">
-                      <div className="flex items-center gap-3 text-black">
-                        <Database className="w-5 h-5" />
-                        <h2 className="text-sm sm:text-base font-black uppercase tracking-tight">
-                          Personeelsgegevens: {searchTerm}
-                        </h2>
-                      </div>
-                      <span className="text-[9px] font-black opacity-60 uppercase tracking-widest text-black hidden sm:inline">
-                        BRON: PERSONEELSFICHEGB.JSON
-                      </span>
-                    </div>
-                  )}
-                  
-                  {viewMode === 'table' ? (
-                    <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
-                      <div className="overflow-x-auto scrollbar-hide">
-                        <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                          <thead>
-                            <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                              {data.length > 0 && Object.keys(data[0]).map((key) => (
-                                <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                  {key}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
-                            {(() => {
-                              const activeIndex = getActiveTripIndex(filteredData);
-                              
-                              return filteredData.map((row, i) => {
-                                const isActive = i === activeIndex;
-                                return (
-                                  <motion.tr 
-                                    initial={{ opacity: 0, x: -5 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: i * 0.02 }}
-                                    key={i} 
-                                    className={`transition-all group relative ${
-                                      isActive 
-                                        ? (isDarkMode ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30' : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50') 
-                                        : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
-                                    }`}
-                                  >
-                                    {Object.entries(row).map(([key, val], j) => (
-                                      <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
+
+                      <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                        <div className="overflow-x-auto scrollbar-hide">
+                          <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                            <thead>
+                              <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                                {data.length > 0 && Object.keys(data[0]).map((key) => (
+                                  <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                    {key}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                              {(() => {
+                                const activeIndex = getActiveTripIndex(filteredData);
+                                
+                                return filteredData.map((row, i) => {
+                                  const isActive = i === activeIndex;
+                                  return (
+                                    <motion.tr 
+                                      initial={{ opacity: 0, x: -5 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: i * 0.02 }}
+                                      key={i} 
+                                      className={`transition-all group relative ${
                                         isActive 
-                                          ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
-                                          : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
-                                      } ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
-                                        {isActive && j === 0 && (
-                                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
-                                        )}
-                                        <div className="flex items-center gap-2">
-                                          {isActive && key === 'Uur' && (
-                                            <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
+                                          ? (isDarkMode ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30' : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50') 
+                                          : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
+                                      }`}
+                                    >
+                                      {Object.entries(row).map(([key, val], j) => (
+                                        <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
+                                          isActive 
+                                            ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
+                                            : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
+                                        } ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
+                                          {isActive && j === 0 && (
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
                                           )}
-                                          {key === 'Lijn' && (
-                                            <Bus className="w-3 h-3 opacity-50" />
-                                          )}
-                                          {key === 'voertuig' && (
-                                            <Train className="w-3 h-3 opacity-50" />
-                                          )}
-                                          {key === 'Plaats' ? (
+                                          <div className="flex items-center gap-2">
+                                            {isActive && key === 'Uur' && (
+                                              <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
+                                            )}
+                                            {key === 'Lijn' && (
+                                              <Bus className="w-3 h-3 opacity-50" />
+                                            )}
+                                            {key === 'voertuig' && (
+                                              <Train className="w-3 h-3 opacity-50" />
+                                            )}
+                                            {key === 'Plaats' ? (
+                                              <a 
+                                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                              >
+                                                {val}
+                                                <ExternalLink className="w-3 h-3 opacity-50" />
+                                              </a>
+                                            ) : String(val)}
+                                            {isActive && key === 'Uur' && (
+                                              <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
+                                            )}
+                                          </div>
+                                        </td>
+                                      ))}
+                                    </motion.tr>
+                                  );
+                                });
+                              })()}
+                              {filteredData.length === 0 && !loading && (
+                                <tr>
+                                  <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                                    Geen gegevens gevonden voor "{searchTerm}" in het bestand van vandaag.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                        {/* Mobile Hint */}
+                        <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
+                          <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
+                          <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-6">
+                      {(() => {
+                        const activeIndex = getActiveTripIndex(filteredData);
+                        return filteredData.map((row, i) => {
+                          const isActive = i === activeIndex;
+                          return (
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: i * 0.05 }}
+                              key={i}
+                              className="overflow-hidden shadow-xl"
+                            >
+                              <div className={`bg-[#FFD200] rounded-t-2xl p-4 flex items-center justify-between shadow-sm border-b border-black/10 ${isActive ? 'ring-2 ring-inset ring-black/20' : ''}`}>
+                                <div className="flex items-center gap-3 text-black">
+                                  <Database className="w-5 h-5" />
+                                  <h2 className="text-sm sm:text-base font-black uppercase tracking-tight">
+                                    Personeelsgegevens: {row.personeelnummer || searchTerm} {row.naam ? `- ${row.naam}` : ''}
+                                  </h2>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isActive && (
+                                    <span className="bg-black text-[#FFD200] text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">
+                                      Actieve Dienst
+                                    </span>
+                                  )}
+                                  <span className="text-[9px] font-black opacity-60 uppercase tracking-widest text-black hidden sm:inline">
+                                    BRON: {fileName?.name || 'PERSONEELSFICHEGB.JSON'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-b-2xl p-6 border border-t-0 ${isActive ? 'ring-2 ring-[#FFD200]' : ''}`}>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                  {(() => {
+                                    const ficheFields = [
+                                      { label: 'UUR', value: row.Uur, icon: Clock },
+                                      { label: 'LIJN', value: row.Lijn, icon: Bus },
+                                      { label: 'RIT', value: row.Rit, icon: Hash },
+                                      { label: 'VOERTUIG', value: row.voertuig, icon: Train },
+                                      { label: 'PLAATS', value: row.Plaats, icon: MapPin },
+                                      { label: 'WISSEL', value: row.wissel, icon: RefreshCw },
+                                      { label: 'LOOP', value: row.Loop, icon: LayoutGrid },
+                                      { label: 'NAAM', value: row.naam, icon: User },
+                                    ];
+
+                                    return ficheFields.map((field, idx) => (
+                                      <div
+                                        key={idx}
+                                        className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-black/5'} p-4 rounded-2xl shadow-sm border flex flex-col gap-1 transition-all hover:scale-[1.02]`}
+                                      >
+                                        <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                                          <field.icon className="w-3 h-3 opacity-50" />
+                                          {field.label}
+                                        </span>
+                                        <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                          {field.label === 'PLAATS' ? (
                                             <a 
-                                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(field.value + ' De Lijn')}`}
                                               target="_blank"
                                               rel="noopener noreferrer"
-                                              className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                              className="hover:underline decoration-[#FFD200] decoration-2 underline-offset-4 flex items-center gap-1"
                                             >
-                                              {val}
+                                              {field.value || '-'}
                                               <ExternalLink className="w-3 h-3 opacity-50" />
                                             </a>
-                                          ) : val}
-                                          {isActive && key === 'Uur' && (
-                                            <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                    ))}
-                                  </motion.tr>
-                                );
-                              });
-                            })()}
-                            {filteredData.length === 0 && !loading && (
-                              <tr>
-                                <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                                  Geen gegevens gevonden voor "{searchTerm}" in het bestand van vandaag.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                      {/* Mobile Hint */}
-                      <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
-                        <div className="w-4 h-1 bg-gray-300 rounded-full" />
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
-                        <div className="w-4 h-1 bg-gray-300 rounded-full" />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-b-2xl p-6 shadow-xl border border-t-0`}>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {(() => {
-                        const person = filteredData[0] || {};
-                        const fullName = person.naam || 'Onbekend';
-                        const [lastName, firstName] = fullName.includes(' ') ? fullName.split(' ') : [fullName, ''];
-                        
-                        const ficheFields = [
-                          { label: 'PERSONEELSNUMMER', value: person.personeelnummer || searchTerm, icon: Hash },
-                          { label: 'NAAM', value: lastName, icon: User },
-                          { label: 'VOORNAAM', value: firstName, icon: User },
-                          { label: 'FUNCTIEOMSCHRIJVING', value: 'Chauffeur standaard bus', icon: Briefcase },
-                          { label: 'DIENSTROL', value: person.Loop || 'RESF', icon: LayoutGrid },
-                          { label: 'TELEFOON', value: '0494 946 953', icon: Phone },
-                          { label: 'E-MAIL', value: `${person.personeelnummer || searchTerm}@delijn.be`, icon: Mail },
-                          { label: 'DIENSTKASTJE', value: '185', icon: Shield },
-                          { label: 'TEAMCOACH', value: 'Christoff Rotty', icon: Users },
-                          { label: 'DATUM IN DIENST', value: '2025-03-04', icon: CalendarDays },
-                          { label: 'GS4 SLEUTEL', value: '1196', icon: Shield },
-                        ];
-
-                        return ficheFields.map((field, idx) => (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            key={idx}
-                            className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} p-4 rounded-2xl shadow-sm border flex flex-col gap-1`}
-                          >
-                            <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                              <field.icon className="w-3 h-3 opacity-50" />
-                              {field.label}
-                            </span>
-                            <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                              {field.value}
-                            </span>
-                          </motion.div>
-                        ));
+                                          ) : (field.value || '-')}
+                                        </span>
+                                      </div>
+                                    ));
+                                  })()}
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        });
                       })()}
-                      </div>
+                      {filteredData.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                          <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                            <AlertCircle className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+                          </div>
+                          <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                            Geen data beschikbaar
+                          </h2>
+                        </div>
+                      )}
                     </div>
                   )}
                 </section>
