@@ -26,9 +26,12 @@ export default function App() {
   const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
-  const filteredData1 = data1.filter(row => 
-    String(row.personeelnummer || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData1 = data1.filter(row => {
+    const s = searchTerm.toLowerCase();
+    return String(row.personeelnummer || '').toLowerCase().includes(s) || 
+           String(row.naam || '').toLowerCase().includes(s) ||
+           String(row.voertuig || '').toLowerCase().includes(s);
+  });
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -145,6 +148,7 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+    checkStatus();
     fetchVisitorCount();
   }, []);
 
@@ -331,7 +335,7 @@ export default function App() {
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <p className="font-bold text-sm">Er is een fout opgetreden</p>
-                <p className="text-xs opacity-80">{error}</p>
+                <p className="text-xs opacity-80 whitespace-pre-wrap">{error}</p>
               </div>
               <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded-lg transition-colors">
                 <XCircle className="w-4 h-4" />
@@ -396,7 +400,7 @@ export default function App() {
             </div>
             <input
               type="text"
-              placeholder="Zoek op personeelnummer..."
+              placeholder="Zoek op personeelnummer, naam of voertuig..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
@@ -424,8 +428,8 @@ export default function App() {
               </h2>
               <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                 {searchTerm.length > 0 
-                  ? `Voer minimaal 4 cijfers in om te zoeken. Je hebt er nu ${searchTerm.length}.`
-                  : 'Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.'}
+                  ? `Voer minimaal 4 tekens in om te zoeken. Je hebt er nu ${searchTerm.length}.`
+                  : 'Vul een personeelnummer, naam of voertuig in om de dienstlijst te bekijken.'}
               </p>
             </div>
           ) : data1.length > 0 ? (

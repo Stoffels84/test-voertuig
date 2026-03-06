@@ -93,6 +93,7 @@ app.get("/api/data", async (req, res) => {
     const ftpDir = process.env.FTP_DIR || "/steekkaart";
 
     if (!host || !user || !password) {
+      console.log("FTP credentials missing, returning mock data");
       // Mock data logic...
       const mockRow = {
         "personeelnummer": "12345",
@@ -109,9 +110,9 @@ app.get("/api/data", async (req, res) => {
       return res.json({
         success: true,
         isMock: true,
-        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890" }],
-        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223" }],
-        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556" }],
+        data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890", naam: "Piet Pieters" }],
+        data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223", naam: "Klaas Klaassen" }],
+        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556", naam: "Bart Baart" }],
         fileNames: [
           { name: "20240301_dienst.xlsx", modifiedAt: new Date().toISOString() }, 
           { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() },
@@ -128,8 +129,12 @@ app.get("/api/data", async (req, res) => {
       secure: secure as any
     });
 
-    // Get today's date in YYYYMMDD format
-    const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    // Get today's date in YYYYMMDD format (Belgium timezone)
+    const now = new Date();
+    const belgiumTime = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Brussels" }));
+    const todayStr = belgiumTime.getFullYear().toString() + 
+                     (belgiumTime.getMonth() + 1).toString().padStart(2, '0') + 
+                     belgiumTime.getDate().toString().padStart(2, '0');
 
     // List files and find the 3 most recent ones starting with yyyymmdd
     const list = await client.list(ftpDir);
