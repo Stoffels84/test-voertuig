@@ -25,9 +25,7 @@ export default function App() {
   const filterData = (data: TransportData[]) => {
     const s = searchTerm.toLowerCase();
     return data.filter(row => 
-      String(row.personeelnummer || '').toLowerCase().includes(s) || 
-      String(row.naam || '').toLowerCase().includes(s) ||
-      String(row.voertuig || '').toLowerCase().includes(s)
+      String(row.personeelnummer || '').toLowerCase().includes(s)
     );
   };
 
@@ -401,7 +399,7 @@ export default function App() {
             </div>
             <input
               type="text"
-              placeholder="Zoek op personeelnummer, naam of voertuig..."
+              placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
@@ -429,7 +427,7 @@ export default function App() {
               <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
                 {searchTerm.length > 0 
                   ? `Voer minimaal 4 tekens in om te zoeken. Je hebt er nu ${searchTerm.length}.`
-                  : 'Vul een personeelnummer, naam of voertuig in om de dienstlijst te bekijken.'}
+                  : 'Vul een personeelnummer in om de dienstlijst te bekijken.'}
               </p>
             </div>
           ) : data.length > 0 ? (
