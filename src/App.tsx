@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
 
@@ -135,23 +135,26 @@ export default function App() {
     }
   };
 
-  useEffect(() => {
-    const incrementSearch = async () => {
-      if (searchTerm.length >= 4 && searchTerm !== lastCountedSearch.current) {
-        try {
-          const res = await fetch('/api/increment-search', { method: 'POST' });
-          const data = await res.json();
-          if (data.success) {
-            setTotalSearches(data.count);
-            lastCountedSearch.current = searchTerm;
-          }
-        } catch (err) {
-          console.error('Error incrementing search count:', err);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      incrementSearch();
+    }
+  };
+
+  const incrementSearch = async () => {
+    if (searchTerm.length >= 4 && searchTerm !== lastCountedSearch.current) {
+      try {
+        const res = await fetch('/api/increment-search', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          setTotalSearches(data.count);
+          lastCountedSearch.current = searchTerm;
         }
+      } catch (err) {
+        console.error('Error incrementing search count:', err);
       }
-    };
-    incrementSearch();
-  }, [searchTerm]);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -387,12 +390,26 @@ export default function App() {
               placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
+              onKeyDown={handleKeyDown}
+              className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
                 isDarkMode 
                   ? 'bg-[#1E1E1E] border-white/10 text-white placeholder:text-gray-600' 
                   : 'bg-white border-black/5 text-gray-900 placeholder:text-gray-400'
               }`}
             />
+            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+              <button
+                onClick={incrementSearch}
+                className={`p-2 rounded-xl transition-all ${
+                  isDarkMode 
+                    ? 'hover:bg-white/5 text-gray-500 hover:text-[#FFD200]' 
+                    : 'hover:bg-black/5 text-gray-400 hover:text-[#FFD200]'
+                }`}
+                title="Bevestig zoekopdracht"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 

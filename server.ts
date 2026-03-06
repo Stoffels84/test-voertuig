@@ -3,10 +3,18 @@ import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
 import dotenv from "dotenv";
+import Database from "better-sqlite3";
+import path from "path";
 
 dotenv.config();
 
-let searchCount = 0;
+// Initialize SQLite database
+const db = new Database("search_stats.db");
+db.exec("CREATE TABLE IF NOT EXISTS stats (id TEXT PRIMARY KEY, count INTEGER)");
+const initRow = db.prepare("SELECT count FROM stats WHERE id = ?").get("total_searches") as { count: number } | undefined;
+if (!initRow) {
+  db.prepare("INSERT INTO stats (id, count) VALUES (?, ?)").run("total_searches", 0);
+}
 
 const app = express();
 app.use(express.json());
@@ -287,13 +295,15 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
 
 // API endpoint to get search count
 app.get("/api/search-count", (req, res) => {
-  res.json({ count: searchCount });
+  const row = db.prepare("SELECT count FROM stats WHERE id = ?").get("total_searches") as { count: number };
+  res.json({ count: row.count });
 });
 
 // API endpoint to increment search count
 app.post("/api/increment-search", (req, res) => {
-  searchCount++;
-  res.json({ success: true, count: searchCount });
+  db.prepare("UPDATE stats SET count = count + 1 WHERE id = ?").run("total_searches");
+  const row = db.prepare("SELECT count FROM stats WHERE id = ?").get("total_searches") as { count: number };
+  res.json({ success: true, count: row.count });
 });
 
 // Vite middleware for development
