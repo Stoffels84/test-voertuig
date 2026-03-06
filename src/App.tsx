@@ -137,7 +137,7 @@ export default function App() {
 
   const fetchVisitorCount = async () => {
     try {
-      const response = await fetch('/api/visitor-count');
+      const response = await fetch(`/api/visitor-count?t=${Date.now()}`);
       const result = await response.json();
       console.log('Visitor count result:', result);
       setVisitorCount(result.count);

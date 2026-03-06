@@ -15,19 +15,19 @@ dotenv.config();
 
 let db: any;
 try {
-  const dbPath = path.join(__dirname, "visitors.db");
+  const dbPath = path.resolve(__dirname, "visitors.db");
   db = new Database(dbPath);
-  console.log(`Database initialized successfully at ${dbPath}`);
+  console.log(`[DB] Initializing at: ${dbPath}`);
   db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
   const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
   if (!row) {
-    console.log("Initializing stats table with count 0");
-    db.prepare("INSERT INTO stats (id, count) VALUES (1, 0)").run();
+    console.log("[DB] No stats row found, creating with count 1");
+    db.prepare("INSERT INTO stats (id, count) VALUES (1, 1)").run();
   } else {
-    console.log("Current visitor count in DB:", row.count);
+    console.log("[DB] Existing count found:", row.count);
   }
 } catch (dbErr) {
-  console.error("Database initialization failed:", dbErr);
+  console.error("[DB] Initialization error:", dbErr);
 }
 
 const app = express();
@@ -37,16 +37,19 @@ app.use(express.json());
 app.get("/api/visitor-count", (req, res) => {
   try {
     if (db) {
+      // Increment first
       db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
+      // Then fetch
       const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
-      console.log("Visitor count updated to:", stats.count);
+      console.log(`[API] Visitor count incremented to: ${stats.count}`);
+      res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.json({ count: stats.count });
     } else {
-      console.warn("Visitor count requested but DB is not available");
-      res.json({ count: 0, warning: "Database not available" });
+      console.error("[API] Visitor count requested but DB is NULL");
+      res.json({ count: 0, error: "Database not initialized" });
     }
   } catch (err) {
-    console.error("Visitor Count Error:", err);
+    console.error("[API] Visitor Count Error:", err);
     res.status(500).json({ error: "Failed to update visitor count" });
   }
 });
