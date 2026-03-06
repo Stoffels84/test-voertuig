@@ -148,6 +148,10 @@ app.get("/api/data", async (req, res) => {
       const worksheet = workbook.Sheets[sheetName];
       const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
+      if (rawData.length > 0) {
+        console.log(`Excel ${fileName} geladen. Kolommen:`, Object.keys(rawData[0]));
+      }
+
       // Helper to format Excel time (decimal) to HH:mm
       const formatExcelTime = (val: any) => {
         if (typeof val !== 'number') return val || "";
@@ -162,24 +166,34 @@ app.get("/api/data", async (req, res) => {
         const filteredRow: any = {};
         
         // Find keys in row case-insensitively
-        const findValue = (targetKey: string) => {
-          const key = Object.keys(row).find(k => k.toLowerCase().trim() === targetKey.toLowerCase().trim());
+        const findValue = (targetKeys: string[]) => {
+          const key = Object.keys(row).find(k => {
+            const normalized = k.toLowerCase().trim();
+            return targetKeys.some(tk => normalized === tk.toLowerCase().trim());
+          });
           return key ? row[key] : undefined;
         };
 
         requestedColumns.forEach(col => {
           const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
-          let value = findValue(col);
           
-          // If not found by original name, try the target name too
-          if (value === undefined && targetKey !== col) {
-            value = findValue(targetKey);
+          let aliases = [col];
+          if (col === "personeelsnummer") {
+            aliases = ["personeelsnummer", "personeelnummer", "stamnummer", "pers. nr.", "pers.nr.", "personeelsnr", "personeelsnr.", "p.nr", "pnr"];
+          } else if (col === "naam") {
+            aliases = ["naam", "name", "bestuurder", "chauffeur", "personeelsnaam"];
+          } else if (col === "Loop") {
+            aliases = ["Loop", "Dienst", "Rit", "Omlopen"];
+          } else if (col === "Lijn") {
+            aliases = ["Lijn", "Line", "Lijnnummer"];
           }
 
+          let value = findValue(aliases);
+          
           if (col === "Uur") {
             filteredRow[targetKey] = formatExcelTime(value);
           } else {
-            filteredRow[targetKey] = value || "";
+            filteredRow[targetKey] = (value !== undefined && value !== null) ? value : "";
           }
         });
         return filteredRow;

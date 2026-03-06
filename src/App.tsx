@@ -241,6 +241,16 @@ export default function App() {
     return nextTrip;
   };
 
+  const filterData = (data: TransportData[]) => {
+    if (!searchTerm || searchTerm.trim().length === 0) return [];
+    const lowerSearch = searchTerm.toLowerCase().trim();
+    return data.filter(row => {
+      return Object.values(row).some(val => 
+        String(val || '').toLowerCase().includes(lowerSearch)
+      );
+    });
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-[#121212] text-gray-100' : 'bg-[#F8F9FA] text-gray-900'} font-sans pb-12`}>
       {/* Offline Banner */}
@@ -360,6 +370,31 @@ export default function App() {
           )}
         </AnimatePresence>
 
+        {/* Error Banner */}
+        <AnimatePresence>
+          {error && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="mb-6 bg-red-50 border-l-4 border-red-500 p-3 sm:p-4 rounded-r-2xl flex items-start gap-3 shadow-sm"
+            >
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+              <div>
+                <h3 className="font-bold text-red-800 text-sm">Fout bij laden</h3>
+                <p className="text-xs text-red-700 leading-relaxed">
+                  {error}
+                </p>
+                <button 
+                  onClick={fetchData}
+                  className="mt-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-800 underline underline-offset-2"
+                >
+                  Probeer opnieuw
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Status Banner */}
         <AnimatePresence>
           {isMock && (
@@ -414,11 +449,11 @@ export default function App() {
         </div>
 
         <div className="space-y-8 sm:space-y-12">
-          {searchTerm.length >= 4 ? (
+          {searchTerm.length >= 1 ? (
             <>
               {/* Next Service Banner */}
               {(() => {
-                const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                const filteredData = filterData(data1);
                 const nextTrip = getNextTrip(filteredData);
                 if (!nextTrip) return null;
 
@@ -503,7 +538,7 @@ export default function App() {
                       </thead>
                       <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
                         {(() => {
-                          const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                          const filteredData = filterData(data1);
                           const activeIndex = getActiveTripIndex(filteredData);
                           
                           return filteredData.map((row, i) => {
@@ -560,7 +595,7 @@ export default function App() {
                             );
                           });
                         })()}
-                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
+                        {filterData(data1).length === 0 && !loading && (
                           <tr>
                             <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                               Geen gegevens gevonden voor "{searchTerm}".
@@ -579,7 +614,7 @@ export default function App() {
                 </div>
 
                 {(() => {
-                  const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                  const filtered = filterData(data1);
                   const firstRow = filtered[0];
                   if (!firstRow) return null;
                   
@@ -654,6 +689,132 @@ export default function App() {
                 })()}
               </section>
 
+              {/* Section 2 - Gisteren */}
+              {filterData(data2).length > 0 && (
+                <section>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Gisteren</h2>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                            {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen bestand gevonden'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                        <thead>
+                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                            {data2.length > 0 && Object.keys(data2[0]).map((key) => (
+                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                          {filterData(data2).map((row, i) => (
+                            <motion.tr 
+                              initial={{ opacity: 0, x: -5 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.02 }}
+                              key={i} 
+                              className={`transition-all group ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10'}`}
+                            >
+                              {Object.entries(row).map(([key, val], j) => (
+                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                                  isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black'
+                                }`}>
+                                  {val}
+                                </td>
+                              ))}
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Section 3 - Morgen */}
+              {filterData(data3).length > 0 && (
+                <section>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-400 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Morgen</h2>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                            {fileNames[2] ? formatFileDate(fileNames[2].name) : 'Geen bestand gevonden'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                        <thead>
+                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                            {data3.length > 0 && Object.keys(data3[0]).map((key) => (
+                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                          {filterData(data3).map((row, i) => (
+                            <motion.tr 
+                              initial={{ opacity: 0, x: -5 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.02 }}
+                              key={i} 
+                              className={`transition-all group ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10'}`}
+                            >
+                              {Object.entries(row).map(([key, val], j) => (
+                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
+                                  isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black'
+                                }`}>
+                                  {val}
+                                </td>
+                              ))}
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* If nothing found in any day */}
+              {filterData(data1).length === 0 && filterData(data2).length === 0 && filterData(data3).length === 0 && (
+                <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                    <XCircle className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+                  </div>
+                  <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Niets gevonden
+                  </h2>
+                  <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                    Geen gegevens gevonden voor "{searchTerm}" in de lijsten van gisteren, vandaag of morgen.
+                  </p>
+                </div>
+              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
