@@ -26,6 +26,10 @@ export default function App() {
   const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
+  const filteredData1 = data1.filter(row => 
+    String(row.personeelnummer || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const fetchWeather = async (lat: number, lon: number) => {
     try {
       const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -315,6 +319,27 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        {/* Error Message */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 text-red-800 shadow-sm"
+            >
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-bold text-sm">Er is een fout opgetreden</p>
+                <p className="text-xs opacity-80">{error}</p>
+              </div>
+              <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded-lg transition-colors">
+                <XCircle className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Connection Status Message */}
         <AnimatePresence>
           {connectionStatus && (
@@ -384,174 +409,189 @@ export default function App() {
         </div>
 
         <div className="space-y-8 sm:space-y-12">
-          {searchTerm.length >= 4 ? (
-            <>
-              {/* Next Service Banner */}
-              {(() => {
-                const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
-                const nextTrip = getNextTrip(filteredData);
-                if (!nextTrip) return null;
-
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
-                      isDarkMode 
-                        ? 'bg-[#FFD200]/10 border-[#FFD200]/20' 
-                        : 'bg-[#FFD200] border-black/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
-                        isDarkMode ? 'bg-[#FFD200]/20' : 'bg-white/40'
-                      }`}>
-                        <Clock className={`w-6 h-6 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <h3 className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>
-                          Volgende dienst
-                        </h3>
-                        <p className={`text-lg sm:text-xl font-black tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                          Lijn {nextTrip.Lijn} • {nextTrip.Plaats}
-                        </p>
-                        <p className={`text-xs font-bold mt-1 opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
-                          Vertrek om {nextTrip.Uur} • Richting {nextTrip.richting}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`px-6 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm ${
-                      isDarkMode ? 'bg-white/5' : 'bg-black text-white'
-                    }`}>
-                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Over</span>
-                      <span className="text-2xl font-black tracking-tighter leading-none">
-                        {nextTrip.diff} <span className="text-xs uppercase ml-0.5">min</span>
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })()}
-
-
-              {/* Section 1 - Vandaag */}
-              <section>
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
-                    </div>
-                    <div className="min-w-0">
-                      <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Vandaag</h2>
-                      <div className="flex flex-col">
-                        <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                          {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
-                        </p>
-                        {fileNames[0]?.modifiedAt && (
-                          <p className="text-[8px] sm:text-xs font-medium text-gray-400">
-                            {formatModifiedTime(fileNames[0].modifiedAt)}
-                          </p>
-                        )}
-                        <p className="text-[8px] sm:text-xs font-bold text-[#FFD200] uppercase tracking-wider mt-0.5">
-                          ↔ Schuif opzij voor meer data te zien
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
-                  <div className="overflow-x-auto scrollbar-hide">
-                    <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                      <thead>
-                        <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                          {data1.length > 0 && Object.keys(data1[0]).map((key) => (
-                            <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                              {key}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
-                        {(() => {
-                          const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
-                          const activeIndex = getActiveTripIndex(filteredData);
-                          
-                          return filteredData.map((row, i) => {
-                            const isActive = i === activeIndex;
-                            return (
-                              <motion.tr 
-                                initial={{ opacity: 0, x: -5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.02 }}
-                                key={i} 
-                                className={`transition-all group relative ${
-                                  isActive 
-                                    ? (isDarkMode ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30' : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50') 
-                                    : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
-                                }`}
-                              >
-                                {Object.entries(row).map(([key, val], j) => (
-                                  <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
-                                    isActive 
-                                      ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
-                                      : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
-                                  } ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
-                                    {isActive && j === 0 && (
-                                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                      {isActive && key === 'Uur' && (
-                                        <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
-                                      )}
-                                      {key === 'Lijn' && (
-                                        <Bus className="w-3 h-3 opacity-50" />
-                                      )}
-                                      {key === 'voertuig' && (
-                                        <Train className="w-3 h-3 opacity-50" />
-                                      )}
-                                      {key === 'Plaats' ? (
-                                        <a 
-                                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
-                                        >
-                                          {val}
-                                          <ExternalLink className="w-3 h-3 opacity-50" />
-                                        </a>
-                                      ) : val}
-                                      {isActive && key === 'Uur' && (
-                                        <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                ))}
-                              </motion.tr>
-                            );
-                          });
-                        })()}
-                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
-                          <tr>
-                            <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
-                              Geen gegevens gevonden voor "{searchTerm}".
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {/* Mobile Hint */}
-                  <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
-                    <div className="w-4 h-1 bg-gray-300 rounded-full" />
-                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
-                    <div className="w-4 h-1 bg-gray-300 rounded-full" />
-                  </div>
-                </div>
-
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <RefreshCw className="w-10 h-10 text-[#FFD200] animate-spin mb-4" />
+              <p className={`text-sm font-bold ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Gegevens ophalen van De Lijn...</p>
+            </div>
+          ) : searchTerm.length < 4 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center px-4">
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                <Search className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+              </div>
+              <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                {searchTerm.length > 0 ? 'Typ nog even verder...' : 'Start met zoeken'}
+              </h2>
+              <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
+                {searchTerm.length > 0 
+                  ? `Voer minimaal 4 cijfers in om te zoeken. Je hebt er nu ${searchTerm.length}.`
+                  : 'Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.'}
+              </p>
+            </div>
+          ) : data1.length > 0 ? (
+              <>
+                {/* Next Service Banner */}
                 {(() => {
-                  const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
-                  const firstRow = filtered[0];
-                  if (!firstRow) return null;
+                  const nextTrip = getNextTrip(filteredData1);
+                  if (!nextTrip || !searchTerm) return null;
+
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
+                        isDarkMode 
+                          ? 'bg-[#FFD200]/10 border-[#FFD200]/20' 
+                          : 'bg-[#FFD200] border-black/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+                          isDarkMode ? 'bg-[#FFD200]/20' : 'bg-white/40'
+                        }`}>
+                          <Clock className={`w-6 h-6 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+                        </div>
+                        <div className="text-center sm:text-left">
+                          <h3 className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>
+                            Volgende dienst
+                          </h3>
+                          <p className={`text-lg sm:text-xl font-black tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                            Lijn {nextTrip.Lijn} • {nextTrip.Plaats}
+                          </p>
+                          <p className={`text-xs font-bold mt-1 opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
+                            Vertrek om {nextTrip.Uur} • Richting {nextTrip.richting}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`px-6 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm ${
+                        isDarkMode ? 'bg-white/5' : 'bg-black text-white'
+                      }`}>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Over</span>
+                        <span className="text-2xl font-black tracking-tighter leading-none">
+                          {nextTrip.diff} <span className="text-xs uppercase ml-0.5">min</span>
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })()}
+
+
+                {/* Section 1 - Vandaag */}
+                <section>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
+                          Resultaten voor "{searchTerm}"
+                        </h2>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
+                            {fileNames[0] ? formatFileDate(fileNames[0].name) : 'Geen bestand gevonden'}
+                          </p>
+                          {fileNames[0]?.modifiedAt && (
+                            <p className="text-[8px] sm:text-xs font-medium text-gray-400">
+                              {formatModifiedTime(fileNames[0].modifiedAt)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
+                    <div className="overflow-x-auto scrollbar-hide">
+                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
+                        <thead>
+                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
+                            {data1.length > 0 && Object.keys(data1[0]).map((key) => (
+                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                {key}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
+                          {(() => {
+                            const activeIndex = getActiveTripIndex(filteredData1);
+                            
+                            return filteredData1.map((row, i) => {
+                              const isActive = i === activeIndex;
+                              return (
+                                <motion.tr 
+                                  initial={{ opacity: 0, x: -5 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: i * 0.02 }}
+                                  key={i} 
+                                  className={`transition-all group relative ${
+                                    isActive 
+                                      ? (isDarkMode ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30' : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50') 
+                                      : (isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10')
+                                  }`}
+                                >
+                                  {Object.entries(row).map(([key, val], j) => (
+                                    <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
+                                      isActive 
+                                        ? (isDarkMode ? 'text-[#FFD200]' : 'text-black') 
+                                        : (isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black')
+                                    } ${key === 'wissel' && String(val).toLowerCase() === 'ja' ? (isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-700') : ''}`}>
+                                      {isActive && j === 0 && (
+                                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
+                                      )}
+                                      <div className="flex items-center gap-2">
+                                        {isActive && key === 'Uur' && (
+                                          <span className="flex h-2 w-2 rounded-full bg-[#FFD200] animate-ping" />
+                                        )}
+                                        {key === 'Lijn' && (
+                                          <Bus className="w-3 h-3 opacity-50" />
+                                        )}
+                                        {key === 'voertuig' && (
+                                          <Train className="w-3 h-3 opacity-50" />
+                                        )}
+                                        {key === 'Plaats' ? (
+                                          <a 
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(val + ' De Lijn')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                          >
+                                            {val}
+                                            <ExternalLink className="w-3 h-3 opacity-50" />
+                                          </a>
+                                        ) : val}
+                                        {isActive && key === 'Uur' && (
+                                          <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">Live</span>
+                                        )}
+                                      </div>
+                                    </td>
+                                  ))}
+                                </motion.tr>
+                              );
+                            });
+                          })()}
+                          {filteredData1.length === 0 && !loading && (
+                            <tr>
+                              <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
+                                Geen gegevens gevonden voor "{searchTerm}".
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Mobile Hint */}
+                    <div className="sm:hidden px-4 py-2 bg-gray-50 border-t border-black/5 flex items-center justify-center gap-2">
+                      <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Swipe voor meer</span>
+                      <div className="w-4 h-1 bg-gray-300 rounded-full" />
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const firstRow = filteredData1[0];
+                    if (!firstRow || !searchTerm) return null;
                   
                   // Zoek naar DIENSTADRES (ongeacht hoofdletters)
                   const dienstadresKey = Object.keys(firstRow).find(k => k.toUpperCase() === 'DIENSTADRES');
@@ -628,15 +668,13 @@ export default function App() {
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
               <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                <Search className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
+                <AlertCircle className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
               </div>
               <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                {searchTerm.length > 0 ? 'Typ nog even verder...' : 'Start met zoeken'}
+                Geen data beschikbaar
               </h2>
               <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                {searchTerm.length > 0 
-                  ? `Voer minimaal 4 cijfers in om te zoeken. Je hebt er nu ${searchTerm.length}.`
-                  : 'Vul een personeelnummer in om de dienstlijst van vandaag en gisteren te bekijken.'}
+                Er konden geen gegevens worden opgehaald van de server. Controleer de verbinding.
               </p>
             </div>
           )}
