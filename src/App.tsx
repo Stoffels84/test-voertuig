@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
 
@@ -9,6 +9,7 @@ interface TransportData {
 export default function App() {
   const [data1, setData1] = useState<TransportData[]>([]);
   const [data2, setData2] = useState<TransportData[]>([]);
+  const [data3, setData3] = useState<TransportData[]>([]);
   const [fileNames, setFileNames] = useState<{ name: string; modifiedAt?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,8 +24,6 @@ export default function App() {
   const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
   const [ritbladContent, setRitbladContent] = useState<string>("");
   const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
-  const [totalSearches, setTotalSearches] = useState<number>(0);
-  const lastCountedSearch = useRef<string>("");
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -111,67 +110,21 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching data from /api/data...');
       const response = await fetch('/api/data');
-      
-      if (!response.ok) {
-        const text = await response.text();
-        console.error('Server responded with error:', response.status, text);
-        try {
-          const json = JSON.parse(text);
-          setError(json.error || `Server fout: ${response.status}`);
-        } catch (e) {
-          setError(`Server fout (${response.status}): ${text.substring(0, 100)}`);
-        }
-        return;
-      }
-
       const result = await response.json();
       if (result.success) {
         setData1(result.data1);
         setData2(result.data2);
+        setData3(result.data3 || []);
         setFileNames(result.fileNames || []);
         setIsMock(!!result.isMock);
       } else {
         setError(result.error || 'Fout bij het ophalen van gegevens');
       }
-      
-      // Fetch search count
-      try {
-        const countRes = await fetch('/api/search-count');
-        if (countRes.ok) {
-          const countData = await countRes.json();
-          setTotalSearches(countData.count);
-        }
-      } catch (e) {
-        console.error('Error fetching search count:', e);
-      }
-    } catch (err: any) {
-      console.error('Fetch error:', err);
-      setError(`Verbindingsfout: ${err.message || 'Kon geen verbinding maken met de server'}`);
+    } catch (err) {
+      setError('Kon geen verbinding maken met de server');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      incrementSearch();
-    }
-  };
-
-  const incrementSearch = async () => {
-    if (searchTerm.length >= 4 && searchTerm !== lastCountedSearch.current) {
-      try {
-        const res = await fetch('/api/increment-search', { method: 'POST' });
-        const data = await res.json();
-        if (data.success) {
-          setTotalSearches(data.count);
-          lastCountedSearch.current = searchTerm;
-        }
-      } catch (err) {
-        console.error('Error incrementing search count:', err);
-      }
     }
   };
 
@@ -258,16 +211,6 @@ export default function App() {
     });
 
     return nextTrip;
-  };
-
-  const filterData = (data: TransportData[]) => {
-    if (!searchTerm || searchTerm.trim().length === 0) return [];
-    const lowerSearch = searchTerm.toLowerCase().trim();
-    return data.filter(row => {
-      return Object.values(row).some(val => 
-        String(val || '').toLowerCase().includes(lowerSearch)
-      );
-    });
   };
 
   return (
@@ -389,31 +332,6 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Error Banner */}
-        <AnimatePresence>
-          {error && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              className="mb-6 bg-red-50 border-l-4 border-red-500 p-3 sm:p-4 rounded-r-2xl flex items-start gap-3 shadow-sm"
-            >
-              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
-              <div>
-                <h3 className="font-bold text-red-800 text-sm">Fout bij laden</h3>
-                <p className="text-xs text-red-700 leading-relaxed">
-                  {error}
-                </p>
-                <button 
-                  onClick={fetchData}
-                  className="mt-2 text-[10px] font-black uppercase tracking-widest text-red-600 hover:text-red-800 underline underline-offset-2"
-                >
-                  Probeer opnieuw
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Status Banner */}
         <AnimatePresence>
           {isMock && (
@@ -444,32 +362,65 @@ export default function App() {
               placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className={`block w-full pl-11 pr-12 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
+              className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
                 isDarkMode 
                   ? 'bg-[#1E1E1E] border-white/10 text-white placeholder:text-gray-600' 
                   : 'bg-white border-black/5 text-gray-900 placeholder:text-gray-400'
               }`}
             />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <button
-                onClick={incrementSearch}
-                className={`p-2 rounded-xl transition-all ${
-                  isDarkMode 
-                    ? 'hover:bg-white/5 text-gray-500 hover:text-[#FFD200]' 
-                    : 'hover:bg-black/5 text-gray-400 hover:text-[#FFD200]'
-                }`}
-                title="Bevestig zoekopdracht"
-              >
-                <CheckCircle2 className="w-5 h-5" />
-              </button>
-            </div>
           </div>
         </div>
 
         <div className="space-y-8 sm:space-y-12">
           {searchTerm.length >= 4 ? (
             <>
+              {/* Next Service Banner */}
+              {(() => {
+                const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
+                const nextTrip = getNextTrip(filteredData);
+                if (!nextTrip) return null;
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
+                      isDarkMode 
+                        ? 'bg-[#FFD200]/10 border-[#FFD200]/20' 
+                        : 'bg-[#FFD200] border-black/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${
+                        isDarkMode ? 'bg-[#FFD200]/20' : 'bg-white/40'
+                      }`}>
+                        <Clock className={`w-6 h-6 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+                      </div>
+                      <div className="text-center sm:text-left">
+                        <h3 className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>
+                          Volgende dienst
+                        </h3>
+                        <p className={`text-lg sm:text-xl font-black tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                          Lijn {nextTrip.Lijn} • {nextTrip.Plaats}
+                        </p>
+                        <p className={`text-xs font-bold mt-1 opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
+                          Vertrek om {nextTrip.Uur} • Richting {nextTrip.richting}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`px-6 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm ${
+                      isDarkMode ? 'bg-white/5' : 'bg-black text-white'
+                    }`}>
+                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Over</span>
+                      <span className="text-2xl font-black tracking-tighter leading-none">
+                        {nextTrip.diff} <span className="text-xs uppercase ml-0.5">min</span>
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })()}
+
+
               {/* Section 1 - Vandaag */}
               <section>
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
@@ -510,7 +461,7 @@ export default function App() {
                       </thead>
                       <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
                         {(() => {
-                          const filteredData = filterData(data1);
+                          const filteredData = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
                           const activeIndex = getActiveTripIndex(filteredData);
                           
                           return filteredData.map((row, i) => {
@@ -567,7 +518,7 @@ export default function App() {
                             );
                           });
                         })()}
-                        {filterData(data1).length === 0 && !loading && (
+                        {data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && !loading && (
                           <tr>
                             <td colSpan={10} className="px-6 py-16 text-center text-gray-400 italic text-sm">
                               Geen gegevens gevonden voor "{searchTerm}".
@@ -586,7 +537,7 @@ export default function App() {
                 </div>
 
                 {(() => {
-                  const filtered = filterData(data1);
+                  const filtered = data1.filter(row => String(row.personeelnummer).toLowerCase().includes(searchTerm.toLowerCase()));
                   const firstRow = filtered[0];
                   if (!firstRow) return null;
                   
@@ -661,76 +612,6 @@ export default function App() {
                 })()}
               </section>
 
-              {/* Section 2 - Gisteren */}
-              {filterData(data2).length > 0 && (
-                <section>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-400 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                        <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                      </div>
-                      <div className="min-w-0">
-                        <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">Gisteren</h2>
-                        <div className="flex flex-col">
-                          <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                            {fileNames[1] ? formatFileDate(fileNames[1].name) : 'Geen bestand gevonden'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
-                    <div className="overflow-x-auto scrollbar-hide">
-                      <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
-                        <thead>
-                          <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-                            {data2.length > 0 && Object.keys(data2[0]).map((key) => (
-                              <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                {key}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody className={`divide-y ${isDarkMode ? 'divide-white/5' : 'divide-black/5'}`}>
-                          {filterData(data2).map((row, i) => (
-                            <motion.tr 
-                              initial={{ opacity: 0, x: -5 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.02 }}
-                              key={i} 
-                              className={`transition-all group ${isDarkMode ? 'hover:bg-white/5' : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10'}`}
-                            >
-                              {Object.entries(row).map(([key, val], j) => (
-                                <td key={j} className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors ${
-                                  isDarkMode ? 'text-gray-300 group-hover:text-white' : 'text-gray-700 group-hover:text-black'
-                                }`}>
-                                  {val}
-                                </td>
-                              ))}
-                            </motion.tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* If nothing found in any day */}
-              {filterData(data1).length === 0 && filterData(data2).length === 0 && (
-                <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                    <XCircle className={`w-10 h-10 ${isDarkMode ? 'text-gray-600' : 'text-gray-300'}`} />
-                  </div>
-                  <h2 className={`text-xl font-black uppercase tracking-tight mb-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                    Niets gevonden
-                  </h2>
-                  <p className={`text-sm font-bold max-w-xs leading-relaxed ${isDarkMode ? 'text-gray-600' : 'text-gray-400'}`}>
-                    Geen gegevens gevonden voor "{searchTerm}" in de lijsten van gisteren of vandaag.
-                  </p>
-                </div>
-              )}
             </>
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center px-4">
@@ -748,27 +629,6 @@ export default function App() {
             </div>
           )}
         </div>
-
-        {/* Search Counter Footer */}
-        <footer className={`mt-12 mb-8 text-center py-6 border-t ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
-          <div className="inline-flex flex-col items-center gap-2">
-            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${
-              isDarkMode ? 'bg-white/5 text-gray-500' : 'bg-black/5 text-gray-400'
-            }`}>
-              Live Statistieken
-            </div>
-            <div className="flex items-center gap-3">
-              <div className={`text-2xl sm:text-3xl font-black tracking-tighter ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                {totalSearches.toLocaleString('nl-BE')}
-              </div>
-              <div className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest text-left leading-tight ${
-                isDarkMode ? 'text-gray-500' : 'text-gray-400'
-              }`}>
-                Totaal aantal<br />opzoekingen
-              </div>
-            </div>
-          </div>
-        </footer>
       </main>
     </div>
   );

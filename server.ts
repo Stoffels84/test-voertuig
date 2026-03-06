@@ -3,41 +3,16 @@ import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
 import dotenv from "dotenv";
-import path from "path";
 
 dotenv.config();
 
-// In-memory stats and cache
-let searchCount = 0;
-let cachedTransportData: any = null;
-let lastCacheTime = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
 const app = express();
 app.use(express.json());
-
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
-});
-
-const accessWithRetry = async (client: Client, config: any, retries = 2) => {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      await client.access(config);
-      return;
-    } catch (err) {
-      if (i === retries) throw err;
-      console.log(`FTP access failed, retrying (${i + 1}/${retries})...`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-};
 
 // API endpoint to check FTP connection status
 app.get("/api/status", async (req, res) => {
   const client = new Client();
   client.ftp.verbose = true;
-  client.ftp.timeout = 15000;
   try {
     const host = process.env.FTP_HOST;
     const user = process.env.FTP_USER;
@@ -51,7 +26,7 @@ app.get("/api/status", async (req, res) => {
       return res.json({ success: false, message: "FTP inloggegevens ontbreken in Vercel Environment Variables", isMock: true });
     }
 
-    await accessWithRetry(client, {
+    await client.access({
       host,
       user,
       password,
@@ -70,16 +45,8 @@ app.get("/api/status", async (req, res) => {
 
 // API endpoint to fetch Excel data from FTP
 app.get("/api/data", async (req, res) => {
-  // Check cache first
-  const now = Date.now();
-  if (cachedTransportData && (now - lastCacheTime < CACHE_DURATION)) {
-    console.log("Serving transport data from cache");
-    return res.json({ ...cachedTransportData, fromCache: true });
-  }
-
   const client = new Client();
   client.ftp.verbose = true;
-  client.ftp.timeout = 15000; // 15 seconds timeout for faster failure on serverless
 
   const requestedColumns = [
     "personeelsnummer", "naam", "Loop", "Lijn", "Uur", 
@@ -97,7 +64,7 @@ app.get("/api/data", async (req, res) => {
     const ftpDir = process.env.FTP_DIR || "/steekkaart";
 
     if (!host || !user || !password) {
-      // Mock data logic remains same for local dev
+      // Mock data logic...
       const mockRow = {
         "personeelnummer": "12345",
         "naam": "Jan Janssens",
@@ -110,20 +77,21 @@ app.get("/api/data", async (req, res) => {
         "Plaats": "Korenmarkt",
         "richting": "Zwijnaarde"
       };
-      const mockResult = {
+      return res.json({
         success: true,
         isMock: true,
         data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890" }],
         data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223" }],
+        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556" }],
         fileNames: [
           { name: "20240301_dienst.xlsx", modifiedAt: new Date().toISOString() }, 
-          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() }
+          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() },
+          { name: "20240302_dienst.xlsx", modifiedAt: new Date().toISOString() }
         ]
-      };
-      return res.json(mockResult);
+      });
     }
 
-    await accessWithRetry(client, {
+    await client.access({
       host,
       user,
       password,
@@ -134,7 +102,7 @@ app.get("/api/data", async (req, res) => {
     // Get today's date in YYYYMMDD format
     const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
-    // List files and find the 2 most recent ones starting with yyyymmdd
+    // List files and find the 3 most recent ones starting with yyyymmdd
     const list = await client.list(ftpDir);
     const xlsxFiles = list
       .filter(f => {
@@ -144,7 +112,7 @@ app.get("/api/data", async (req, res) => {
         return dateMatch && isExcel;
       })
       .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
-      .slice(0, 2);
+      .slice(0, 3);
 
     if (xlsxFiles.length === 0) {
       const allFiles = list.map(f => f.name).join(", ");
@@ -152,7 +120,6 @@ app.get("/api/data", async (req, res) => {
     }
 
     const fetchData = async (fileName: string) => {
-      console.log(`Fetching file: ${fileName}`);
       const filePath = ftpDir.endsWith("/") ? `${ftpDir}${fileName}` : `${ftpDir}/${fileName}`;
       const chunks: Buffer[] = [];
       const writable = new Writable({
@@ -164,15 +131,14 @@ app.get("/api/data", async (req, res) => {
 
       await client.downloadTo(writable, filePath);
       const buffer = Buffer.concat(chunks);
-      console.log(`File ${fileName} downloaded, size: ${buffer.length} bytes`);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       
+      // Look for "Dienstlijst" sheet
       const sheetName = workbook.SheetNames.find(n => n.toLowerCase() === "dienstlijst") || workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
       const rawData: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-      if (rawData.length === 0) return [];
-
+      // Helper to format Excel time (decimal) to HH:mm
       const formatExcelTime = (val: any) => {
         if (typeof val !== 'number') return val || "";
         const totalMinutes = Math.round(val * 24 * 60);
@@ -181,70 +147,91 @@ app.get("/api/data", async (req, res) => {
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
       };
 
+      // Filter columns and handle renaming/formatting
       return rawData.map(row => {
         const filteredRow: any = {};
+        
+        // Find keys in row case-insensitively
+        const findValue = (targetKey: string) => {
+          const key = Object.keys(row).find(k => k.toLowerCase().trim() === targetKey.toLowerCase().trim());
+          return key ? row[key] : undefined;
+        };
+
         requestedColumns.forEach(col => {
           const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
-          const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_.]/g, '');
-          const normalizedCol = normalize(col);
-          let key = Object.keys(row).find(k => normalize(k) === normalizedCol);
-          if (!key && col === "personeelsnummer") {
-            const variations = ["personeelnummer", "persnr", "pnummer", "stamnummer", "personeelsnr"];
-            key = Object.keys(row).find(k => variations.includes(normalize(k)));
+          let value = findValue(col);
+          
+          // If not found by original name, try the target name too
+          if (value === undefined && targetKey !== col) {
+            value = findValue(targetKey);
           }
-          let value = key ? row[key] : "";
+
           if (col === "Uur") {
             filteredRow[targetKey] = formatExcelTime(value);
           } else {
-            filteredRow[targetKey] = value;
+            filteredRow[targetKey] = value || "";
           }
         });
         return filteredRow;
       });
     };
 
-    // Parallel fetching to save time
-    const fetchPromises: Promise<any>[] = [];
-    const fileNames: any[] = [];
+    // Map results to data1 (today/latest), data2 (yesterday/previous), data3 (tomorrow/future)
+    // Actually we sort by date descending, so:
+    // xlsxFiles[0] is the latest (could be tomorrow if exists)
+    // xlsxFiles[1] is today
+    // xlsxFiles[2] is yesterday
     
+    // Let's find today's file index
     const todayIndex = xlsxFiles.findIndex(f => f.name.startsWith(todayStr));
     
+    let data1: any[] = []; // Today
+    let data2: any[] = []; // Yesterday
+    let data3: any[] = []; // Tomorrow
+    let fileNames: any[] = [];
+
     if (todayIndex !== -1) {
-      fetchPromises.push(fetchData(xlsxFiles[todayIndex].name));
+      // Today exists
+      data1 = await fetchData(xlsxFiles[todayIndex].name);
       fileNames[0] = { name: xlsxFiles[todayIndex].name, modifiedAt: xlsxFiles[todayIndex].modifiedAt };
       
+      // Yesterday is likely todayIndex + 1
       if (xlsxFiles[todayIndex + 1]) {
-        fetchPromises.push(fetchData(xlsxFiles[todayIndex + 1].name));
+        data2 = await fetchData(xlsxFiles[todayIndex + 1].name);
         fileNames[1] = { name: xlsxFiles[todayIndex + 1].name, modifiedAt: xlsxFiles[todayIndex + 1].modifiedAt };
       }
+      
+      // Tomorrow is likely todayIndex - 1
+      if (todayIndex > 0 && xlsxFiles[todayIndex - 1]) {
+        data3 = await fetchData(xlsxFiles[todayIndex - 1].name);
+        fileNames[2] = { name: xlsxFiles[todayIndex - 1].name, modifiedAt: xlsxFiles[todayIndex - 1].modifiedAt };
+      }
     } else {
+      // If today doesn't exist, just take the top 3 as they are
       if (xlsxFiles[0]) {
-        fetchPromises.push(fetchData(xlsxFiles[0].name));
+        data1 = await fetchData(xlsxFiles[0].name);
         fileNames[0] = { name: xlsxFiles[0].name, modifiedAt: xlsxFiles[0].modifiedAt };
       }
       if (xlsxFiles[1]) {
-        fetchPromises.push(fetchData(xlsxFiles[1].name));
+        data2 = await fetchData(xlsxFiles[1].name);
         fileNames[1] = { name: xlsxFiles[1].name, modifiedAt: xlsxFiles[1].modifiedAt };
+      }
+      if (xlsxFiles[2]) {
+        data3 = await fetchData(xlsxFiles[2].name);
+        fileNames[2] = { name: xlsxFiles[2].name, modifiedAt: xlsxFiles[2].modifiedAt };
       }
     }
 
-    const results = await Promise.all(fetchPromises);
-    
-    const responseData = {
+    res.json({
       success: true,
-      data1: results[0] || [],
-      data2: results[1] || [],
+      data1,
+      data2,
+      data3,
       fileNames
-    };
-
-    // Update cache
-    cachedTransportData = responseData;
-    lastCacheTime = Date.now();
-
-    res.json(responseData);
+    });
   } catch (err: any) {
     console.error("FTP Error:", err);
-    res.status(500).json({ success: false, error: `FTP Fout: ${err.message}` });
+    res.status(500).json({ success: false, error: err.message });
   } finally {
     client.close();
   }
@@ -256,18 +243,13 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
   }
 
   const client = new Client();
-  client.ftp.timeout = 15000; // 15 seconds timeout
   try {
-    let secure: boolean | "implicit" = false;
-    if (process.env.FTP_SECURE === "true") secure = true;
-    if (process.env.FTP_SECURE === "implicit") secure = "implicit";
-
-    await accessWithRetry(client, {
+    await client.access({
       host: process.env.FTP_HOST,
       user: process.env.FTP_USER,
       password: process.env.FTP_PASSWORD,
       port: parseInt(process.env.FTP_PORT || "21"),
-      secure: secure as any,
+      secure: process.env.FTP_SECURE === "true",
     });
 
     // Bepaal de map op basis van de dag van de week
@@ -301,20 +283,8 @@ app.get("/api/pdf/Ritblad/:filename", async (req, res) => {
   }
 });
 
-// API endpoint to get search count
-app.get("/api/search-count", (req, res) => {
-  res.json({ count: searchCount });
-});
-
-// API endpoint to increment search count
-app.post("/api/increment-search", (req, res) => {
-  searchCount++;
-  res.json({ success: true, count: searchCount });
-});
-
 // Vite middleware for development
 async function setupVite() {
-  console.log("Setting up Vite middleware...");
   if (process.env.NODE_ENV !== "production") {
     const { createServer } = await import("vite");
     const vite = await createServer({
@@ -322,36 +292,19 @@ async function setupVite() {
       appType: "spa",
     });
     app.use(vite.middlewares);
-    console.log("Vite middleware attached.");
   } else {
     app.use(express.static("dist"));
-    console.log("Serving static files from dist.");
   }
 }
 
-// Start server
-async function startServer() {
-  try {
-    await setupVite();
-    
-    const PORT = 3000;
-    app.listen(PORT, "0.0.0.0", () => {
-      console.log(`Server running on http://0.0.0.0:${PORT}`);
-    });
-  } catch (err) {
-    console.error("Failed to start server:", err);
-    process.exit(1);
-  }
+setupVite();
+
+// Start server if not running on Vercel
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  const PORT = 3000;
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+  });
 }
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-});
-
-startServer();
 
 export default app;
