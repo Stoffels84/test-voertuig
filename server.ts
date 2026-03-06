@@ -5,15 +5,26 @@ import { Writable } from "stream";
 import dotenv from "dotenv";
 import Database from "better-sqlite3";
 
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 dotenv.config();
 
 let db: any;
 try {
-  db = new Database("visitors.db");
+  const dbPath = path.join(__dirname, "visitors.db");
+  db = new Database(dbPath);
+  console.log(`Database initialized successfully at ${dbPath}`);
   db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
   const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
   if (!row) {
+    console.log("Initializing stats table with count 0");
     db.prepare("INSERT INTO stats (id, count) VALUES (1, 0)").run();
+  } else {
+    console.log("Current visitor count in DB:", row.count);
   }
 } catch (dbErr) {
   console.error("Database initialization failed:", dbErr);
@@ -28,8 +39,10 @@ app.get("/api/visitor-count", (req, res) => {
     if (db) {
       db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
       const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
+      console.log("Visitor count updated to:", stats.count);
       res.json({ count: stats.count });
     } else {
+      console.warn("Visitor count requested but DB is not available");
       res.json({ count: 0, warning: "Database not available" });
     }
   } catch (err) {

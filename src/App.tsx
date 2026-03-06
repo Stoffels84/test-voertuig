@@ -139,6 +139,7 @@ export default function App() {
     try {
       const response = await fetch('/api/visitor-count');
       const result = await response.json();
+      console.log('Visitor count result:', result);
       setVisitorCount(result.count);
     } catch (err) {
       console.error('Visitor count error:', err);
