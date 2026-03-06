@@ -3,11 +3,31 @@ import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
 import dotenv from "dotenv";
+import Database from "better-sqlite3";
 
 dotenv.config();
 
+const db = new Database("visitors.db");
+db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
+const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
+if (!row) {
+  db.prepare("INSERT INTO stats (id, count) VALUES (1, 0)").run();
+}
+
 const app = express();
 app.use(express.json());
+
+// API endpoint for visitor counter
+app.get("/api/visitor-count", (req, res) => {
+  try {
+    db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
+    const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
+    res.json({ count: stats.count });
+  } catch (err) {
+    console.error("Visitor Count Error:", err);
+    res.status(500).json({ error: "Failed to update visitor count" });
+  }
+});
 
 // API endpoint to check FTP connection status
 app.get("/api/status", async (req, res) => {

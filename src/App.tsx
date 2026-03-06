@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets } from 'lucide-react';
+import { Bus, Train, AlertCircle, RefreshCw, FileSpreadsheet, FileText, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users } from 'lucide-react';
 
 interface TransportData {
   [key: string]: any;
@@ -24,6 +24,7 @@ export default function App() {
   const [weather, setWeather] = useState<{ temp: number; condition: string; code: number } | null>(null);
   const [ritbladContent, setRitbladContent] = useState<string>("");
   const [activeDienstadres, setActiveDienstadres] = useState<string | null>(null);
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
   const fetchWeather = async (lat: number, lon: number) => {
     try {
@@ -128,8 +129,19 @@ export default function App() {
     }
   };
 
+  const fetchVisitorCount = async () => {
+    try {
+      const response = await fetch('/api/visitor-count');
+      const result = await response.json();
+      setVisitorCount(result.count);
+    } catch (err) {
+      console.error('Visitor count error:', err);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchVisitorCount();
   }, []);
 
   const DeLijnYellow = "#FFD200";
@@ -630,6 +642,25 @@ export default function App() {
           )}
         </div>
       </main>
+
+      {/* Footer / Visitor Counter */}
+      <footer className={`mt-auto py-8 border-t ${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'}`}>
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-4">
+          {visitorCount !== null && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm ${
+              isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-gray-50 border-black/5 text-gray-500'
+            }`}>
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-black uppercase tracking-widest">
+                Totaal aantal bezoekers: <span className={isDarkMode ? 'text-[#FFD200]' : 'text-black'}>{visitorCount.toLocaleString('nl-BE')}</span>
+              </span>
+            </div>
+          )}
+          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
+            © {new Date().getFullYear()} De Lijn - Personeelsportaal
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
