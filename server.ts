@@ -92,11 +92,9 @@ app.get("/api/data", async (req, res) => {
         isMock: true,
         data1: [mockRow, { ...mockRow, Uur: "08:15", Lijn: "2", personeelnummer: "67890" }],
         data2: [mockRow, { ...mockRow, Uur: "09:00", Lijn: "4", personeelnummer: "11223" }],
-        data3: [mockRow, { ...mockRow, Uur: "10:00", Lijn: "5", personeelnummer: "44556" }],
         fileNames: [
           { name: "20240301_dienst.xlsx", modifiedAt: new Date().toISOString() }, 
-          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() },
-          { name: "20240302_dienst.xlsx", modifiedAt: new Date().toISOString() }
+          { name: "20240229_dienst.xlsx", modifiedAt: new Date().toISOString() }
         ]
       });
     }
@@ -112,7 +110,7 @@ app.get("/api/data", async (req, res) => {
     // Get today's date in YYYYMMDD format
     const todayStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
 
-    // List files and find the 3 most recent ones starting with yyyymmdd
+    // List files and find the 2 most recent ones starting with yyyymmdd
     const list = await client.list(ftpDir);
     const xlsxFiles = list
       .filter(f => {
@@ -122,7 +120,7 @@ app.get("/api/data", async (req, res) => {
         return dateMatch && isExcel;
       })
       .sort((a, b) => b.name.localeCompare(a.name)) // Sort descending by name (yyyymmdd)
-      .slice(0, 3);
+      .slice(0, 2);
 
     if (xlsxFiles.length === 0) {
       const allFiles = list.map(f => f.name).join(", ");
@@ -164,54 +162,32 @@ app.get("/api/data", async (req, res) => {
       // Filter columns and handle renaming/formatting
       return rawData.map(row => {
         const filteredRow: any = {};
-        
-        // Find keys in row case-insensitively
-        const findValue = (targetKeys: string[]) => {
-          const key = Object.keys(row).find(k => {
-            const normalized = k.toLowerCase().trim();
-            return targetKeys.some(tk => normalized === tk.toLowerCase().trim());
-          });
-          return key ? row[key] : undefined;
-        };
-
         requestedColumns.forEach(col => {
           const targetKey = col === "personeelsnummer" ? "personeelnummer" : col;
-          
-          let aliases = [col];
-          if (col === "personeelsnummer") {
-            aliases = ["personeelsnummer", "personeelnummer", "stamnummer", "pers. nr.", "pers.nr.", "personeelsnr", "personeelsnr.", "p.nr", "pnr"];
-          } else if (col === "naam") {
-            aliases = ["naam", "name", "bestuurder", "chauffeur", "personeelsnaam"];
-          } else if (col === "Loop") {
-            aliases = ["Loop", "Dienst", "Rit", "Omlopen"];
-          } else if (col === "Lijn") {
-            aliases = ["Lijn", "Line", "Lijnnummer"];
-          }
-
-          let value = findValue(aliases);
+          // Try to find the column with case-insensitive match
+          const key = Object.keys(row).find(k => k.toLowerCase().trim() === col.toLowerCase().trim());
+          let value = key ? row[key] : "";
           
           if (col === "Uur") {
             filteredRow[targetKey] = formatExcelTime(value);
           } else {
-            filteredRow[targetKey] = (value !== undefined && value !== null) ? value : "";
+            filteredRow[targetKey] = value;
           }
         });
         return filteredRow;
       });
     };
 
-    // Map results to data1 (today/latest), data2 (yesterday/previous), data3 (tomorrow/future)
+    // Map results to data1 (today/latest), data2 (yesterday/previous)
     // Actually we sort by date descending, so:
-    // xlsxFiles[0] is the latest (could be tomorrow if exists)
-    // xlsxFiles[1] is today
-    // xlsxFiles[2] is yesterday
+    // xlsxFiles[0] is the latest
+    // xlsxFiles[1] is the previous
     
     // Let's find today's file index
     const todayIndex = xlsxFiles.findIndex(f => f.name.startsWith(todayStr));
     
     let data1: any[] = []; // Today
     let data2: any[] = []; // Yesterday
-    let data3: any[] = []; // Tomorrow
     let fileNames: any[] = [];
 
     if (todayIndex !== -1) {
@@ -224,14 +200,8 @@ app.get("/api/data", async (req, res) => {
         data2 = await fetchData(xlsxFiles[todayIndex + 1].name);
         fileNames[1] = { name: xlsxFiles[todayIndex + 1].name, modifiedAt: xlsxFiles[todayIndex + 1].modifiedAt };
       }
-      
-      // Tomorrow is likely todayIndex - 1
-      if (todayIndex > 0 && xlsxFiles[todayIndex - 1]) {
-        data3 = await fetchData(xlsxFiles[todayIndex - 1].name);
-        fileNames[2] = { name: xlsxFiles[todayIndex - 1].name, modifiedAt: xlsxFiles[todayIndex - 1].modifiedAt };
-      }
     } else {
-      // If today doesn't exist, just take the top 3 as they are
+      // If today doesn't exist, just take the top 2 as they are
       if (xlsxFiles[0]) {
         data1 = await fetchData(xlsxFiles[0].name);
         fileNames[0] = { name: xlsxFiles[0].name, modifiedAt: xlsxFiles[0].modifiedAt };
@@ -240,17 +210,12 @@ app.get("/api/data", async (req, res) => {
         data2 = await fetchData(xlsxFiles[1].name);
         fileNames[1] = { name: xlsxFiles[1].name, modifiedAt: xlsxFiles[1].modifiedAt };
       }
-      if (xlsxFiles[2]) {
-        data3 = await fetchData(xlsxFiles[2].name);
-        fileNames[2] = { name: xlsxFiles[2].name, modifiedAt: xlsxFiles[2].modifiedAt };
-      }
     }
 
     res.json({
       success: true,
       data1,
       data2,
-      data3,
       fileNames
     });
   } catch (err: any) {
