@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Bus, Train, AlertCircle, RefreshCw, ExternalLink, Wifi, WifiOff, CheckCircle2, XCircle, Search, Calendar, Clock, Moon, Sun, Cloud, CloudRain, CloudSun, CloudLightning, Snowflake, Droplets, Users, Database, Mail, Phone, User, Hash, Briefcase, Shield, CalendarDays, LayoutGrid, Table as TableIcon, MapPin } from 'lucide-react';
 
 interface TransportData {
