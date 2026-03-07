@@ -3,7 +3,6 @@ import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
 import dotenv from "dotenv";
-import Database from "better-sqlite3";
 import fs from "fs";
 
 import path from "path";
@@ -14,46 +13,28 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-let db: any;
-const dbPath = path.resolve(__dirname, "visitors.db");
+let visitorCount = 0;
+const statsPath = path.resolve(__dirname, "stats.json");
 
-function initDb() {
+function initStats() {
   try {
-    db = new Database(dbPath);
-    console.log(`[DB] Initializing at: ${dbPath}`);
-    db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
-    const row = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number } | undefined;
-    if (!row) {
-      console.log("[DB] No stats row found, creating with count 1");
-      db.prepare("INSERT INTO stats (id, count) VALUES (1, 1)").run();
+    if (fs.existsSync(statsPath)) {
+      const data = fs.readFileSync(statsPath, "utf8");
+      const parsed = JSON.parse(data);
+      visitorCount = typeof parsed.count === 'number' ? parsed.count : 0;
+      console.log(`[Stats] Loaded count: ${visitorCount}`);
     } else {
-      console.log("[DB] Existing count found:", row.count);
+      visitorCount = 1;
+      fs.writeFileSync(statsPath, JSON.stringify({ count: visitorCount }), "utf8");
+      console.log("[Stats] Created new stats file");
     }
-  } catch (dbErr: any) {
-    console.error("[DB] Initialization error:", dbErr);
-    if (dbErr.message && dbErr.message.includes("malformed")) {
-      console.error("[DB] Malformed database detected. Deleting and recreating...");
-      if (db) {
-        try { db.close(); } catch (e) {}
-        db = null;
-      }
-      if (fs.existsSync(dbPath)) {
-        fs.unlinkSync(dbPath);
-      }
-      // Re-initialize
-      try {
-        db = new Database(dbPath);
-        db.exec("CREATE TABLE IF NOT EXISTS stats (id INTEGER PRIMARY KEY, count INTEGER)");
-        db.prepare("INSERT INTO stats (id, count) VALUES (1, 1)").run();
-        console.log("[DB] Re-initialization successful");
-      } catch (retryErr) {
-        console.error("[DB] Retry initialization failed:", retryErr);
-      }
-    }
+  } catch (err) {
+    console.error("[Stats] Initialization error:", err);
+    visitorCount = 0;
   }
 }
 
-initDb();
+initStats();
 
 const app = express();
 app.use(express.json());
@@ -61,36 +42,33 @@ app.use(express.json());
 // API endpoint for visitor counter
 app.get("/api/visitor-count", (req, res) => {
   try {
-    if (!db) {
-      initDb();
+    // Read current count from file to ensure we have the latest (even if multiple processes are running)
+    let currentCount = 0;
+    try {
+      if (fs.existsSync(statsPath)) {
+        const data = fs.readFileSync(statsPath, "utf8");
+        const parsed = JSON.parse(data);
+        currentCount = typeof parsed.count === 'number' ? parsed.count : 0;
+      }
+    } catch (readErr) {
+      console.error("[Stats] Read error during API call:", readErr);
+      // Fallback to memory count if read fails
+      currentCount = visitorCount;
     }
 
-    if (db) {
-      try {
-        // Increment first
-        db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
-        // Then fetch
-        const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
-        console.log(`[API] Visitor count incremented to: ${stats.count}`);
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.json({ count: stats.count });
-      } catch (queryErr: any) {
-        if (queryErr.message && queryErr.message.includes("malformed")) {
-          console.error("[API] Malformed database detected during query. Attempting recovery...");
-          initDb(); // This will delete and recreate
-          // Try one more time
-          if (db) {
-            db.prepare("UPDATE stats SET count = count + 1 WHERE id = 1").run();
-            const stats = db.prepare("SELECT count FROM stats WHERE id = 1").get() as { count: number };
-            return res.json({ count: stats.count });
-          }
-        }
-        throw queryErr;
-      }
-    } else {
-      console.error("[API] Visitor count requested but DB is NULL");
-      res.json({ count: 0, error: "Database not initialized" });
+    currentCount++;
+    visitorCount = currentCount;
+
+    // Save synchronously to ensure it's written before we return
+    try {
+      fs.writeFileSync(statsPath, JSON.stringify({ count: visitorCount }), "utf8");
+    } catch (writeErr) {
+      console.error("[Stats] Write error during API call:", writeErr);
     }
+    
+    console.log(`[API] Visitor count incremented to: ${visitorCount}`);
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.json({ count: visitorCount });
   } catch (err) {
     console.error("[API] Visitor Count Error:", err);
     res.status(500).json({ error: "Failed to update visitor count" });

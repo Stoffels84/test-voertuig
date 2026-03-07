@@ -235,12 +235,11 @@ export default function App() {
     }
   };
 
-  const fetchVisitorCount = async () => {
+  const fetchVisitorCount = async (retries = 3) => {
     try {
       const response = await fetch(`/api/visitor-count?t=${Date.now()}`);
       if (!response.ok) {
-        console.error('Visitor count API error:', response.status);
-        return;
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       const result = await response.json();
 
@@ -249,6 +248,9 @@ export default function App() {
       }
     } catch (err) {
       console.error('Visitor count fetch error:', err);
+      if (retries > 0) {
+        setTimeout(() => fetchVisitorCount(retries - 1), 1000);
+      }
     }
   };
 
