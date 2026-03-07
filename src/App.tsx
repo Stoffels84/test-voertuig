@@ -622,12 +622,9 @@ export default function App() {
                             Dienstlijst Vandaag voor "{searchTerm}"
                           </h2>
                           <div className="flex flex-col">
-                            <p className="text-[10px] sm:text-sm font-bold text-gray-500 truncate">
-                              {fileName ? formatFileDate(fileName.name) : 'Geen bestand gevonden'}
-                            </p>
                             {fileName && (
-                              <p className="text-[8px] sm:text-[10px] font-mono text-gray-400 truncate opacity-70">
-                                BRON: {fileName.name}
+                              <p className="text-[8px] sm:text-[10px] font-bold text-gray-500 truncate">
+                                {formatFileDate(fileName.name)}
                               </p>
                             )}
                           </div>
@@ -777,9 +774,6 @@ export default function App() {
                                     Actieve Dienst
                                   </span>
                                 )}
-                                <span className="text-[9px] font-black opacity-60 uppercase tracking-widest text-black hidden sm:inline">
-                                  BRON: {fileName?.name || 'PERSONEELSFICHEGB.JSON'}
-                                </span>
                               </div>
                             </div>
 
