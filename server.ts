@@ -3,7 +3,6 @@ import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
 import dotenv from "dotenv";
-import fs from "fs";
 
 import path from "path";
 import { fileURLToPath } from "url";
@@ -13,67 +12,8 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
-let visitorCount = 0;
-const statsPath = path.resolve(__dirname, "stats.json");
-
-function initStats() {
-  try {
-    if (fs.existsSync(statsPath)) {
-      const data = fs.readFileSync(statsPath, "utf8");
-      const parsed = JSON.parse(data);
-      visitorCount = typeof parsed.count === 'number' ? parsed.count : 0;
-      console.log(`[Stats] Loaded count: ${visitorCount}`);
-    } else {
-      visitorCount = 1;
-      fs.writeFileSync(statsPath, JSON.stringify({ count: visitorCount }), "utf8");
-      console.log("[Stats] Created new stats file");
-    }
-  } catch (err) {
-    console.error("[Stats] Initialization error:", err);
-    visitorCount = 0;
-  }
-}
-
-initStats();
-
 const app = express();
 app.use(express.json());
-
-// API endpoint for visitor counter
-app.get("/api/visitor-count", (req, res) => {
-  try {
-    // Read current count from file to ensure we have the latest (even if multiple processes are running)
-    let currentCount = 0;
-    try {
-      if (fs.existsSync(statsPath)) {
-        const data = fs.readFileSync(statsPath, "utf8");
-        const parsed = JSON.parse(data);
-        currentCount = typeof parsed.count === 'number' ? parsed.count : 0;
-      }
-    } catch (readErr) {
-      console.error("[Stats] Read error during API call:", readErr);
-      // Fallback to memory count if read fails
-      currentCount = visitorCount;
-    }
-
-    currentCount++;
-    visitorCount = currentCount;
-
-    // Save synchronously to ensure it's written before we return
-    try {
-      fs.writeFileSync(statsPath, JSON.stringify({ count: visitorCount }), "utf8");
-    } catch (writeErr) {
-      console.error("[Stats] Write error during API call:", writeErr);
-    }
-    
-    console.log(`[API] Visitor count incremented to: ${visitorCount}`);
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.json({ count: visitorCount });
-  } catch (err) {
-    console.error("[API] Visitor Count Error:", err);
-    res.status(500).json({ error: "Failed to update visitor count" });
-  }
-});
 
 const getFtpSecure = () => {
   const val = process.env.FTP_SECURE;

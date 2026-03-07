@@ -21,7 +21,6 @@ import {
   CloudLightning,
   Snowflake,
   Droplets,
-  Users,
   Database,
   User,
   Hash,
@@ -66,7 +65,6 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true);
   const [, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherState | null>(null);
-  const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -154,15 +152,11 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    
-    // Refresh visitor count every 30 seconds to make it feel more "live"
-    const visitorTimer = setInterval(() => fetchVisitorCount(), 30000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(timer);
-      clearInterval(visitorTimer);
     };
   }, []);
 
@@ -239,29 +233,9 @@ export default function App() {
     }
   };
 
-  const fetchVisitorCount = async (retries = 3) => {
-    try {
-      const response = await fetch(`/api/visitor-count?t=${Date.now()}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const result = await response.json();
-
-      if (typeof result?.count === 'number') {
-        setVisitorCount(result.count);
-      }
-    } catch (err) {
-      console.error('Visitor count fetch error:', err);
-      if (retries > 0) {
-        setTimeout(() => fetchVisitorCount(retries - 1), 1000);
-      }
-    }
-  };
-
   useEffect(() => {
     fetchData();
     checkStatus();
-    fetchVisitorCount();
   }, []);
 
   const formatFileDate = (name: string) => {
@@ -861,26 +835,6 @@ export default function App() {
 
       <footer className={`mt-auto py-8 border-t ${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'}`}>
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-4">
-          {visitorCount !== null && (
-            <div
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border shadow-sm ${
-                isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-gray-50 border-black/5 text-gray-500'
-              }`}
-            >
-              <Users className={`w-4 h-4 ${visitorCount !== null ? 'animate-pulse text-[#FFD200]' : ''}`} />
-              <span className="text-xs font-black uppercase tracking-widest">
-                Totaal aantal bezoekers:{' '}
-                <motion.span 
-                  key={visitorCount}
-                  initial={{ scale: 1.2, color: '#FFD200' }}
-                  animate={{ scale: 1, color: isDarkMode ? '#FFD200' : '#000000' }}
-                  className={isDarkMode ? 'text-[#FFD200]' : 'text-black'}
-                >
-                  {visitorCount.toLocaleString('nl-BE')}
-                </motion.span>
-              </span>
-            </div>
-          )}
         </div>
       </footer>
     </div>
