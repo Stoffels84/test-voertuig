@@ -154,11 +154,15 @@ export default function App() {
     window.addEventListener('offline', handleOffline);
 
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    
+    // Refresh visitor count every 30 seconds to make it feel more "live"
+    const visitorTimer = setInterval(() => fetchVisitorCount(), 30000);
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(timer);
+      clearInterval(visitorTimer);
     };
   }, []);
 
@@ -863,12 +867,17 @@ export default function App() {
                 isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-gray-50 border-black/5 text-gray-500'
               }`}
             >
-              <Users className="w-4 h-4" />
+              <Users className={`w-4 h-4 ${visitorCount !== null ? 'animate-pulse text-[#FFD200]' : ''}`} />
               <span className="text-xs font-black uppercase tracking-widest">
                 Totaal aantal bezoekers:{' '}
-                <span className={isDarkMode ? 'text-[#FFD200]' : 'text-black'}>
+                <motion.span 
+                  key={visitorCount}
+                  initial={{ scale: 1.2, color: '#FFD200' }}
+                  animate={{ scale: 1, color: isDarkMode ? '#FFD200' : '#000000' }}
+                  className={isDarkMode ? 'text-[#FFD200]' : 'text-black'}
+                >
                   {visitorCount.toLocaleString('nl-BE')}
-                </span>
+                </motion.span>
               </span>
             </div>
           )}
