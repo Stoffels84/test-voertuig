@@ -238,13 +238,17 @@ export default function App() {
   const fetchVisitorCount = async () => {
     try {
       const response = await fetch(`/api/visitor-count?t=${Date.now()}`);
+      if (!response.ok) {
+        console.error('Visitor count API error:', response.status);
+        return;
+      }
       const result = await response.json();
 
       if (typeof result?.count === 'number') {
         setVisitorCount(result.count);
       }
     } catch (err) {
-      console.error('Visitor count error:', err);
+      console.error('Visitor count fetch error:', err);
     }
   };
 
@@ -365,15 +369,7 @@ export default function App() {
       >
         <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div>
-              <p
-                className={`text-xs sm:text-sm font-black opacity-70 uppercase tracking-widest ${
-                  isDarkMode ? 'text-[#FFD200]' : 'text-black'
-                }`}
-              >
-                Selfservice heeft steeds voorrang
-              </p>
-            </div>
+            {/* Logo or Title could go here */}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
@@ -880,10 +876,6 @@ export default function App() {
               </span>
             </div>
           )}
-
-          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 ${isDarkMode ? 'text-white' : 'text-black'}`}>
-            © {new Date().getFullYear()} De Lijn - Personeelsportaal
-          </p>
         </div>
       </footer>
     </div>
