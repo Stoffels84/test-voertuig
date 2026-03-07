@@ -62,7 +62,7 @@ export default function App() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [isOnline, setIsOnline] = useState(true);
   const [, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherState | null>(null);
@@ -76,7 +76,7 @@ export default function App() {
       setIsDarkMode(localStorage.getItem('darkMode') === 'true');
 
       const savedViewMode = localStorage.getItem('viewMode');
-      setViewMode(savedViewMode === 'cards' ? 'cards' : 'table');
+      setViewMode(savedViewMode === 'table' ? 'table' : 'cards');
 
       setIsOnline(navigator.onLine);
     } catch (err) {
@@ -611,44 +611,6 @@ export default function App() {
             </div>
           ) : data.length > 0 ? (
             <>
-              {(() => {
-                const nextTrip = getNextTrip(filteredData);
-                if (!nextTrip || !searchTerm) return null;
-
-                return (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`p-4 sm:p-6 rounded-3xl border shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 transition-all mb-8 ${
-                      isDarkMode ? 'bg-[#FFD200]/10 border-[#FFD200]/20' : 'bg-[#FFD200] border-black/5'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner ${isDarkMode ? 'bg-[#FFD200]/20' : 'bg-white/40'}`}>
-                        <Clock className={`w-6 h-6 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-                      </div>
-                      <div className="text-center sm:text-left">
-                        <h3 className={`text-[10px] font-black uppercase tracking-widest opacity-60 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>
-                          Volgende dienst
-                        </h3>
-                        <p className={`text-lg sm:text-xl font-black tracking-tight leading-none ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                          Lijn {nextTrip.Lijn} • {nextTrip.Plaats}
-                        </p>
-                        <p className={`text-xs font-bold mt-1 opacity-70 ${isDarkMode ? 'text-gray-400' : 'text-black'}`}>
-                          Vertrek om {nextTrip.Uur} • Richting {nextTrip.richting}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`px-6 py-3 rounded-2xl flex flex-col items-center justify-center min-w-[120px] shadow-sm ${isDarkMode ? 'bg-white/5' : 'bg-black text-white'}`}>
-                      <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Over</span>
-                      <span className="text-2xl font-black tracking-tighter leading-none">
-                        {nextTrip.diff} <span className="text-xs uppercase ml-0.5">min</span>
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })()}
-
               <section className="space-y-4">
                 {viewMode === 'table' ? (
                   <>
@@ -831,12 +793,11 @@ export default function App() {
                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {[
                                   { label: 'UUR', value: row.Uur, icon: Clock },
-                                  { label: 'LIJN', value: row.Lijn, icon: Bus },
-                                  { label: 'RIT', value: row.Rit, icon: Hash },
-                                  { label: 'VOERTUIG', value: row.voertuig, icon: Train },
                                   { label: 'PLAATS', value: row.Plaats, icon: MapPin },
-                                  { label: 'WISSEL', value: row.wissel, icon: RefreshCw },
+                                  { label: 'LIJN', value: row.Lijn, icon: Bus },
                                   { label: 'LOOP', value: row.Loop, icon: LayoutGrid },
+                                  { label: 'VOERTUIG', value: row.voertuig, icon: Train },
+                                  { label: 'WISSEL', value: row.wissel, icon: RefreshCw },
                                   { label: 'NAAM', value: row.naam, icon: User },
                                 ].map((field, idx) => (
                                   <div
