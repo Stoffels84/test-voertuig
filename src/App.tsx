@@ -618,7 +618,7 @@ export default function App() {
                               {data.length > 0 &&
                                 Object.keys(data[0]).map((key) => (
                                   <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                    {key}
+                                    {key.toLowerCase() === 'wissel' ? 'VOERTUIGWISSEL' : key}
                                   </th>
                                 ))}
                             </tr>
@@ -767,7 +767,7 @@ export default function App() {
                                   { label: 'LIJN', value: row.Lijn, icon: Bus },
                                   { label: 'LOOP', value: row.Loop, icon: LayoutGrid },
                                   { label: 'VOERTUIG', value: row.voertuig, icon: Train },
-                                  { label: 'WISSEL', value: row.wissel, icon: RefreshCw },
+                                  { label: 'VOERTUIGWISSEL', value: row.wissel, icon: RefreshCw },
                                   { label: 'NAAM', value: row.naam, icon: User },
                                 ].map((field, idx) => (
                                   <div
