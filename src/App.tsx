@@ -347,9 +347,14 @@ export default function App() {
           isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-[#FFD200] border-black/5'
         } shadow-lg border-b sticky top-0 z-50 safe-top transition-colors duration-300`}
       >
-        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Logo or Title could go here */}
+        <div className="max-w-7xl mx-auto px-4 h-20 sm:h-28 flex items-center justify-between">
+          <div className="flex items-center gap-3 max-w-[70%] sm:max-w-none">
+            <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
+              <AlertCircle className={`w-5 h-5 sm:w-6 sm:h-6 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+              <p className={`text-[14px] sm:text-[18px] font-bold leading-tight ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
+                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> krijgt steeds voorrang op de diensten die hier zichtbaar zijn.
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
