@@ -65,6 +65,33 @@ export default function App() {
   const [isOnline, setIsOnline] = useState(true);
   const [, setCurrentTime] = useState(new Date());
   const [weather, setWeather] = useState<WeatherState | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    }
+    setDeferredPrompt(null);
+    setShowInstallButton(false);
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -440,6 +467,18 @@ export default function App() {
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{loading ? 'Laden...' : 'Vernieuwen'}</span>
             </button>
+
+            {showInstallButton && (
+              <button
+                onClick={handleInstallClick}
+                className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md ${
+                  isDarkMode ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span className="hidden sm:inline">Installeer App</span>
+              </button>
+            )}
           </div>
         </div>
       </header>
