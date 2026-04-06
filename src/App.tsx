@@ -67,9 +67,18 @@ export default function App() {
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
+      console.log('beforeinstallprompt fired');
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallButton(true);
@@ -468,12 +477,13 @@ export default function App() {
               <span className="hidden sm:inline">{loading ? 'Laden...' : 'Vernieuwen'}</span>
             </button>
 
-            {showInstallButton && (
+            {showInstallButton && !isInstalled && (
               <button
                 onClick={handleInstallClick}
                 className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md ${
                   isDarkMode ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
+                title="Installeer als App"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span className="hidden sm:inline">Installeer App</span>
@@ -529,6 +539,26 @@ export default function App() {
               <button onClick={() => setConnectionStatus(null)} className="p-2 text-gray-400 hover:text-gray-600">
                 <XCircle className="w-4 h-4 opacity-50" />
               </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {!isInstalled && !showInstallButton && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className={`mb-6 p-4 rounded-2xl border flex items-start gap-3 shadow-sm ${
+                isDarkMode ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-800'
+              }`}
+            >
+              <ExternalLink className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-bold text-sm">Installeer als App (Edge/Chrome)</p>
+                <p className="text-xs opacity-80">
+                  Klik op de <strong>drie puntjes (...)</strong> rechtsboven in je browser, ga naar <strong>Apps</strong> en kies <strong>"Deze site installeren als een app"</strong>.
+                </p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
