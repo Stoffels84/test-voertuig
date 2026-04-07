@@ -1013,7 +1013,7 @@ export default function App() {
             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Search
                 className={`h-5 w-5 transition-colors ${
-                  isDarkMode ? 'text-gray-500 group-focus-within:text-[#FFD200]' : 'text-gray-400 group-focus-within:text-[#FFD200]'
+                  isDarkMode ? 'text-[#FFD200] group-focus-within:text-[#FFD200]' : 'text-gray-400 group-focus-within:text-[#FFD200]'
                 }`}
               />
             </div>
@@ -1022,10 +1022,10 @@ export default function App() {
               placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`block w-full pl-11 pr-4 py-3.5 border rounded-2xl shadow-sm focus:ring-2 focus:ring-[#FFD200] focus:border-transparent outline-none font-bold text-sm transition-all placeholder:font-medium ${
+              className={`block w-full pl-11 pr-4 py-3.5 border-2 rounded-2xl shadow-sm focus:ring-4 focus:ring-[#FFD200]/20 focus:border-[#FFD200] outline-none font-bold text-sm transition-all placeholder:font-medium ${
                 isDarkMode
-                  ? 'bg-[#1E1E1E] border-white/10 text-white placeholder:text-gray-600'
-                  : 'bg-white border-black/5 text-gray-900 placeholder:text-gray-400'
+                  ? 'bg-[#1E1E1E] border-[#FFD200]/30 text-white placeholder:text-gray-600'
+                  : 'bg-white border-[#FFD200]/50 text-gray-900 placeholder:text-gray-400'
               }`}
             />
           </div>
@@ -1149,8 +1149,8 @@ export default function App() {
                                     className={`transition-all group relative ${
                                       isActive
                                         ? isDarkMode
-                                          ? 'bg-[#FFD200]/10 ring-1 ring-[#FFD200]/30'
-                                          : 'bg-[#FFD200]/15 ring-1 ring-[#FFD200]/50'
+                                          ? 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_20px_rgba(255,210,0,0.3)] z-10'
+                                          : 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_20px_rgba(255,210,0,0.4)] z-10'
                                         : isDarkMode
                                         ? 'hover:bg-white/5'
                                         : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10'
@@ -1159,17 +1159,17 @@ export default function App() {
                                     {Object.entries(row).map(([key, val], j) => (
                                       <td
                                         key={j}
-                                        className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-semibold whitespace-nowrap transition-colors relative ${
+                                        className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-bold whitespace-nowrap transition-colors relative ${
                                           isActive
-                                            ? isDarkMode
-                                              ? 'text-[#FFD200]'
-                                              : 'text-black'
+                                            ? 'text-black'
                                             : isDarkMode
                                             ? 'text-gray-300 group-hover:text-white'
                                             : 'text-gray-700 group-hover:text-black'
                                         } ${
                                           key === 'wissel' && String(val).toLowerCase() === 'ja'
-                                            ? isDarkMode
+                                            ? isActive
+                                              ? 'bg-blue-600/20'
+                                              : isDarkMode
                                               ? 'bg-blue-500/20 text-blue-400'
                                               : 'bg-blue-50 text-blue-700'
                                             : ''
