@@ -15,12 +15,6 @@ import {
   Clock,
   Moon,
   Sun,
-  Cloud,
-  CloudRain,
-  CloudSun,
-  CloudLightning,
-  Snowflake,
-  Droplets,
   Database,
   User,
   Hash,
@@ -43,12 +37,6 @@ interface ConnectionStatus {
   message: string;
 }
 
-interface WeatherState {
-  temp: number;
-  condition: string;
-  code: number;
-}
-
 export default function App() {
   const [data, setData] = useState<TransportData[]>([]);
   const [fileName, setFileName] = useState<FileInfo | null>(null);
@@ -64,7 +52,6 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [isOnline, setIsOnline] = useState(true);
   const [, setCurrentTime] = useState(new Date());
-  const [weather, setWeather] = useState<WeatherState | null>(null);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -126,57 +113,6 @@ export default function App() {
         .includes(s)
     );
   }, [data, searchTerm]);
-
-  const getCondition = (code: number) => {
-    if (code === 0) return 'Onbewolkt';
-    if (code <= 3) return 'Licht bewolkt';
-    if (code <= 48) return 'Mistig';
-    if (code <= 55) return 'Motregen';
-    if (code <= 65) return 'Regen';
-    if (code <= 77) return 'Sneeuw';
-    if (code <= 82) return 'Regenbuien';
-    if (code <= 86) return 'Sneeuwbuien';
-    if (code <= 99) return 'Onweer';
-    return 'Onbekend';
-  };
-
-  const fetchWeather = async (lat: number, lon: number) => {
-    try {
-      const response = await fetch(
-        `/api/weather?lat=${lat}&lon=${lon}`
-      );
-
-      if (!response.ok) return;
-
-      const data = await response.json();
-      const current = data?.current_weather;
-
-      if (!current || typeof current.temperature !== 'number' || typeof current.weathercode !== 'number') {
-        return;
-      }
-
-      setWeather({
-        temp: Math.round(current.temperature),
-        condition: getCondition(current.weathercode),
-        code: current.weathercode,
-      });
-    } catch (err) {
-      console.error('Weather fetch error:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-        () => fetchWeather(51.0543, 3.7174)
-      );
-    } else {
-      fetchWeather(51.0543, 3.7174);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -286,17 +222,6 @@ export default function App() {
     return name;
   };
 
-  const getWeatherIcon = (code: number) => {
-    if (code === 0) return <Sun className="w-4 h-4 text-yellow-500" />;
-    if (code <= 3) return <CloudSun className="w-4 h-4 text-gray-400" />;
-    if (code <= 48) return <Cloud className="w-4 h-4 text-gray-400" />;
-    if (code <= 65) return <CloudRain className="w-4 h-4 text-blue-400" />;
-    if (code <= 77) return <Snowflake className="w-4 h-4 text-blue-200" />;
-    if (code <= 82) return <Droplets className="w-4 h-4 text-blue-500" />;
-    if (code <= 99) return <CloudLightning className="w-4 h-4 text-purple-500" />;
-    return <Cloud className="w-4 h-4 text-gray-400" />;
-  };
-
   const getActiveTripIndex = (rows: TransportData[]) => {
     if (!rows || rows.length === 0) return -1;
 
@@ -394,32 +319,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
-            {weather && (
-              <div
-                className={`flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-full border transition-all shadow-sm ${
-                  isDarkMode ? 'bg-white/10 border-white/10' : 'bg-white border-black/5'
-                }`}
-              >
-                {getWeatherIcon(weather.code)}
-                <div className="flex flex-col leading-none">
-                  <span
-                    className={`text-[10px] sm:text-[11px] font-black uppercase tracking-tighter ${
-                      isDarkMode ? 'text-white' : 'text-black'
-                    }`}
-                  >
-                    {weather.temp}°C
-                  </span>
-                  <span
-                    className={`text-[7px] sm:text-[8px] font-bold opacity-60 hidden xs:inline ${
-                      isDarkMode ? 'text-gray-400' : 'text-black'
-                    }`}
-                  >
-                    {weather.condition}
-                  </span>
-                </div>
-              </div>
-            )}
-
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
