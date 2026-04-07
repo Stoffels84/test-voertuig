@@ -110,20 +110,30 @@ export default function App() {
   const toggleNotifications = async () => {
     if (!notificationsEnabled) {
       if ('Notification' in window) {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          setNotificationsEnabled(true);
-          localStorage.setItem('notificationsEnabled', 'true');
-          try {
-            new Notification('Meldingen ingeschakeld', {
-              body: 'Je ontvangt nu meldingen 5 en 10 minuten voor vertrek.',
-              icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
-            });
-          } catch (e) {
-            console.error('Notification error:', e);
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            setNotificationsEnabled(true);
+            localStorage.setItem('notificationsEnabled', 'true');
+            try {
+              new Notification('Meldingen ingeschakeld', {
+                body: 'Je ontvangt nu meldingen 5 en 10 minuten voor vertrek.',
+                icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+              });
+            } catch (e) {
+              console.error('Notification error:', e);
+            }
+          } else {
+            const isIframe = window.self !== window.top;
+            if (isIframe) {
+              alert('Meldingen worden vaak geblokkeerd binnen een iframe. Klik op het icoontje rechtsboven om de app in een nieuw tabblad te openen en probeer het daar opnieuw.');
+            } else {
+              alert('Meldingen zijn geweigerd door de browser. Schakel ze handmatig in bij de site-instellingen.');
+            }
           }
-        } else {
-          alert('Meldingen zijn geweigerd door de browser. Schakel ze handmatig in bij de site-instellingen.');
+        } catch (err) {
+          console.error('Notification permission error:', err);
+          alert('Er is een fout opgetreden bij het aanvragen van meldingen. Probeer de app te openen in een nieuw tabblad.');
         }
       } else {
         alert('Deze browser ondersteunt geen meldingen.');
