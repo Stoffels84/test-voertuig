@@ -28,6 +28,8 @@ import {
   Timer,
   Share2,
   Check,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { db } from './firebase';
 import { 
@@ -78,7 +80,7 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
   const [isOnline, setIsOnline] = useState(true);
-  const [, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -89,6 +91,42 @@ export default function App() {
   const [authorName, setAuthorName] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [showMessageBoard, setShowMessageBoard] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notifiedTrips, setNotifiedTrips] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const saved = localStorage.getItem('notificationsEnabled');
+    if (saved === 'true' && 'Notification' in window && Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
+  }, []);
+
+  const toggleNotifications = async () => {
+    if (!notificationsEnabled) {
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          setNotificationsEnabled(true);
+          localStorage.setItem('notificationsEnabled', 'true');
+          try {
+            new Notification('Meldingen ingeschakeld', {
+              body: 'Je ontvangt nu meldingen 5 en 10 minuten voor vertrek.',
+              icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+            });
+          } catch (e) {
+            console.error('Notification error:', e);
+          }
+        } else {
+          alert('Meldingen zijn geweigerd door de browser. Schakel ze handmatig in bij de site-instellingen.');
+        }
+      } else {
+        alert('Deze browser ondersteunt geen meldingen.');
+      }
+    } else {
+      setNotificationsEnabled(false);
+      localStorage.setItem('notificationsEnabled', 'false');
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -157,6 +195,41 @@ export default function App() {
         .includes(s)
     );
   }, [data, searchTerm]);
+
+  useEffect(() => {
+    if (!notificationsEnabled || filteredData.length === 0 || !('Notification' in window) || Notification.permission !== 'granted') return;
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    filteredData.forEach(row => {
+      const timeStr = row?.Uur;
+      if (typeof timeStr === 'string' && timeStr.includes(':')) {
+        const [h, m] = timeStr.split(':').map(Number);
+        const tripMinutes = h * 60 + m;
+        const diff = tripMinutes - nowMinutes;
+
+        if (diff === 10 || diff === 5) {
+          const tripId = `${row.personeelnummer}_${timeStr}_${diff}`;
+          if (!notifiedTrips.has(tripId)) {
+            try {
+              new Notification(`Vertrek over ${diff} minuten!`, {
+                body: `Lijn ${row.Lijn} naar ${row.Plaats} vertrekt om ${timeStr}.`,
+                icon: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+              });
+              setNotifiedTrips(prev => {
+                const next = new Set(prev);
+                next.add(tripId);
+                return next;
+              });
+            } catch (e) {
+              console.error('Notification trigger error:', e);
+            }
+          }
+        }
+      }
+    });
+  }, [currentTime, notificationsEnabled, filteredData, notifiedTrips]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -489,6 +562,18 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4">
+            <button
+              onClick={toggleNotifications}
+              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
+                isDarkMode
+                  ? `bg-white/10 ${notificationsEnabled ? 'text-[#FFD200]' : 'text-gray-400'} border-white/10 hover:bg-white/20`
+                  : `bg-white/80 ${notificationsEnabled ? 'text-blue-600' : 'text-black'} border-black/5 hover:bg-white`
+              }`}
+              title={notificationsEnabled ? "Meldingen uitschakelen" : "Meldingen inschakelen (5 & 10 min voor vertrek)"}
+            >
+              {notificationsEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+            </button>
+
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
               className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
@@ -953,7 +1038,18 @@ export default function App() {
                                           {key === 'Lijn' && <Bus className="w-3 h-3 opacity-50" />}
                                           {key === 'voertuig' && <Train className="w-3 h-3 opacity-50" />}
 
-                                          {key === 'Plaats' ? (
+                                          {key === 'voertuig' ? (
+                                            <a
+                                              href={`https://vehicletracking.delijn.be/`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="flex items-center gap-1 hover:underline decoration-[#FFD200] decoration-2 underline-offset-4"
+                                              title="Bekijk live locatie"
+                                            >
+                                              {String(val)}
+                                              <MapPin className="w-3 h-3 opacity-50" />
+                                            </a>
+                                          ) : key === 'Plaats' ? (
                                             <a
                                               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(val) + ' De Lijn')}`}
                                               target="_blank"
@@ -975,7 +1071,7 @@ export default function App() {
                                             
                                             if (diff > 0 && diff < 60) {
                                               return (
-                                                <span className={`ml-2 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
+                                                <span className={`ml-2 text-sm font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
                                                   isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
                                                 }`}>
                                                   {diff}m
@@ -1111,6 +1207,17 @@ export default function App() {
                                             {field.value || '-'}
                                             <ExternalLink className="w-3 h-3 opacity-50" />
                                           </a>
+                                        ) : field.label === 'VOERTUIG' ? (
+                                          <a
+                                            href={`https://vehicletracking.delijn.be/`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:underline decoration-[#FFD200] decoration-2 underline-offset-4 flex items-center gap-1"
+                                            title="Bekijk live locatie"
+                                          >
+                                            {field.value || '-'}
+                                            <MapPin className="w-3 h-3 opacity-50" />
+                                          </a>
                                         ) : (
                                           field.value || '-'
                                         )}
@@ -1123,7 +1230,7 @@ export default function App() {
                                         
                                         if (diff > 0 && diff < 60) {
                                           return (
-                                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
+                                            <span className={`text-sm font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
                                               isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
                                             }`}>
                                               {diff}m
