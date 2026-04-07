@@ -186,6 +186,63 @@ app.get("/api/data", async (req, res) => {
   }
 });
 
+// Simple in-memory cache for weather data
+const weatherCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
+// API endpoint to proxy weather requests to avoid CORS/blocking issues
+app.get("/api/weather", async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) {
+    return res.status(400).json({ error: "Latitude and longitude are required" });
+  }
+
+  // Round coordinates to 1 decimal place to group nearby requests and increase cache hits
+  const roundedLat = Math.round(Number(lat) * 10) / 10;
+  const roundedLon = Math.round(Number(lon) * 10) / 10;
+  const cacheKey = `${roundedLat},${roundedLon}`;
+
+  const now = Date.now();
+  if (weatherCache[cacheKey] && (now - weatherCache[cacheKey].timestamp < CACHE_DURATION)) {
+    console.log(`[Weather] Serving from cache for ${cacheKey}`);
+    return res.json(weatherCache[cacheKey].data);
+  }
+
+  try {
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`;
+    const response = await fetch(weatherUrl);
+    
+    if (response.status === 429) {
+      console.warn("[Weather] Rate limit hit (429). Attempting to serve stale cache if available.");
+      if (weatherCache[cacheKey]) {
+        return res.json(weatherCache[cacheKey].data);
+      }
+      return res.status(429).json({ error: "Te veel aanvragen bij weerdienst. Probeer het later opnieuw." });
+    }
+
+    if (!response.ok) {
+      throw new Error(`Weather API responded with status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    // Update cache
+    weatherCache[cacheKey] = {
+      data,
+      timestamp: now
+    };
+
+    res.json(data);
+  } catch (err: any) {
+    console.error("Weather proxy error:", err);
+    // If we have any cached data for this location, serve it as fallback
+    if (weatherCache[cacheKey]) {
+      return res.json(weatherCache[cacheKey].data);
+    }
+    res.status(500).json({ error: "Kon weergegevens niet ophalen", details: err.message });
+  }
+});
+
 // Vite middleware for development
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

@@ -143,7 +143,7 @@ export default function App() {
   const fetchWeather = async (lat: number, lon: number) => {
     try {
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`
+        `/api/weather?lat=${lat}&lon=${lon}`
       );
 
       if (!response.ok) return;
@@ -556,6 +556,8 @@ export default function App() {
               <div className="flex-1">
                 <p className="font-bold text-sm">Installeer als App (Edge/Chrome)</p>
                 <p className="text-xs opacity-80">
+                  Om rechtstreeks naar deze pagina te gaan, ga naar <a href="https://opzoeken-voertuig.vercel.app" target="_blank" rel="noopener noreferrer" className="underline font-bold">https://opzoeken-voertuig.vercel.app</a>
+                  <br />
                   Klik op de <strong>drie puntjes (...)</strong> rechtsboven in je browser, ga naar <strong>Apps</strong> en kies <strong>"Deze site installeren als een app"</strong>.
                 </p>
               </div>

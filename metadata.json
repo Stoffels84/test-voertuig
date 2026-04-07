@@ -1,5 +1,5 @@
 {
   "name": "Opzoeken voertuig chauffeur",
   "description": "Een applicatie in de huisstijl van De Lijn die Excel-bestanden via FTP inlaadt en visualiseert.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["geolocation"]
 }
