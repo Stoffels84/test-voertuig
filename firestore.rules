@@ -7,6 +7,13 @@
 // Fields:
 //   - count: number (required) - The current visitor count
 //
+// Collection: messages
+// Document ID: auto-generated
+// Fields:
+//   - text: string (required, max 200 chars)
+//   - author: string (required, max 50 chars)
+//   - timestamp: timestamp (required)
+//
 // ===============================================================
 
 rules_version = '2';
@@ -24,6 +31,14 @@ service cloud.firestore {
              data.count >= 0;
     }
 
+    function isValidMessage(data) {
+      return data.keys().hasAll(['text', 'author', 'timestamp']) &&
+             data.keys().hasOnly(['text', 'author', 'timestamp']) &&
+             data.text is string && data.text.size() <= 200 &&
+             data.author is string && data.author.size() <= 50 &&
+             data.timestamp is timestamp;
+    }
+
     // Visitor Counter
     match /stats/visitors {
       // Allow public reading of the visitor count
@@ -36,6 +51,14 @@ service cloud.firestore {
       // Allow incrementing the count by exactly 1
       allow update: if isValidStat(request.resource.data) && 
                       request.resource.data.count == resource.data.count + 1;
+    }
+
+    // Message Board
+    match /messages/{messageId} {
+      allow read: if true;
+      allow create: if isValidMessage(request.resource.data);
+      allow delete: if false;
+      allow update: if false;
     }
 
     // Default deny

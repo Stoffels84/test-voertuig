@@ -11,12 +11,27 @@
         }
       },
       "required": ["count"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A message left by a chauffeur",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "author": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["text", "author", "timestamp"]
     }
   },
   "firestore": {
     "/stats/visitors": {
       "schema": "Stat",
       "description": "Document tracking the total number of visitors"
+    },
+    "/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Collection of messages on the message board"
     }
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bus,
@@ -22,9 +22,24 @@ import {
   Table as TableIcon,
   MapPin,
   Eye,
+  MessageSquare,
+  Send,
+  CalendarPlus,
+  Timer,
 } from 'lucide-react';
 import { db } from './firebase';
-import { doc, onSnapshot, runTransaction, getDoc } from 'firebase/firestore';
+import { 
+  doc, 
+  onSnapshot, 
+  runTransaction, 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  limit, 
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
 
 interface TransportData {
   [key: string]: any;
@@ -33,6 +48,13 @@ interface TransportData {
 interface FileInfo {
   name: string;
   modifiedAt?: string;
+}
+
+interface Message {
+  id: string;
+  text: string;
+  author: string;
+  timestamp: any;
 }
 
 interface ConnectionStatus {
@@ -59,6 +81,11 @@ export default function App() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [authorName, setAuthorName] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [showMessageBoard, setShowMessageBoard] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -246,8 +273,69 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    // Message Board Logic
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      orderBy('timestamp', 'desc'),
+      limit(20)
+    );
+
+    const unsubscribeMessages = onSnapshot(messagesQuery, (snapshot) => {
+      const msgs: Message[] = [];
+      snapshot.forEach((doc) => {
+        msgs.push({ id: doc.id, ...doc.data() } as Message);
+      });
+      setMessages(msgs);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeMessages();
+    };
   }, []);
+
+  const handleSendMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !authorName.trim() || isSendingMessage) return;
+
+    setIsSendingMessage(true);
+    try {
+      await addDoc(collection(db, 'messages'), {
+        text: newMessage.trim(),
+        author: authorName.trim(),
+        timestamp: serverTimestamp(),
+      });
+      setNewMessage('');
+      localStorage.setItem('authorName', authorName);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError('Kon bericht niet verzenden');
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  useEffect(() => {
+    setAuthorName(localStorage.getItem('authorName') || '');
+  }, []);
+
+  const addToCalendar = (trip: TransportData) => {
+    const now = new Date();
+    const [hours, minutes] = trip.Uur.split(':').map(Number);
+    
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+    const endDate = new Date(startDate.getTime() + 30 * 60000); // Assume 30 min duration
+
+    const formatTime = (date: Date) => date.toISOString().replace(/-|:|\.\d+/g, '');
+    
+    const title = `Rit Lijn ${trip.Lijn} - ${trip.richting}`;
+    const details = `Voertuig: ${trip.voertuig}\nLoop: ${trip.Loop}\nPlaats: ${trip.Plaats}\nNaam: ${trip.naam}`;
+    const location = trip.Plaats;
+
+    const googleUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatTime(startDate)}/${formatTime(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+    
+    window.open(googleUrl, '_blank');
+  };
 
   const formatFileDate = (name: string) => {
     if (!name) return '';
@@ -369,6 +457,23 @@ export default function App() {
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
+            <button
+              onClick={() => setShowMessageBoard(!showMessageBoard)}
+              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border relative ${
+                isDarkMode
+                  ? 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                  : 'bg-white/80 text-black border-black/5 hover:bg-white'
+              }`}
+              title="Berichtenbord"
+            >
+              <MessageSquare className="w-5 h-5" />
+              {messages.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                  {messages.length}
+                </span>
+              )}
+            </button>
+
             {visitorCount !== null && (
               <div
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm ${
@@ -444,6 +549,102 @@ export default function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+        <AnimatePresence>
+          {showMessageBoard && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className={`mb-6 overflow-hidden rounded-3xl border shadow-lg ${
+                isDarkMode ? 'bg-[#1a1a1a] border-white/10' : 'bg-white border-black/5'
+              }`}
+            >
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-blue-500/20' : 'bg-blue-50'}`}>
+                      <MessageSquare className={`w-5 h-5 ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`} />
+                    </div>
+                    <h2 className={`text-lg font-black tracking-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      Berichtenbord
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setShowMessageBoard(false)}
+                    className={`p-2 rounded-full hover:bg-black/5 transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                  >
+                    <XCircle className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleSendMessage} className="mb-6 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <input
+                      type="text"
+                      placeholder="Jouw naam..."
+                      value={authorName}
+                      onChange={(e) => setAuthorName(e.target.value)}
+                      className={`px-4 py-2.5 rounded-xl border outline-none transition-all text-sm ${
+                        isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
+                      }`}
+                      required
+                    />
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        placeholder="Deel een update of waarschuwing..."
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        className={`w-full pl-4 pr-12 py-2.5 rounded-xl border outline-none transition-all text-sm ${
+                          isDarkMode ? 'bg-white/5 border-white/10 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'
+                        }`}
+                        required
+                        maxLength={200}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSendingMessage}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {messages.length === 0 ? (
+                    <div className="text-center py-8 opacity-50 italic text-sm">Nog geen berichten...</div>
+                  ) : (
+                    messages.map((msg) => (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`p-3 rounded-2xl border ${
+                          isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-gray-100'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-1">
+                          <span className={`text-xs font-bold ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                            {msg.author}
+                          </span>
+                          <span className="text-[10px] opacity-50">
+                            {msg.timestamp instanceof Timestamp 
+                              ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : 'Zojuist'}
+                          </span>
+                        </div>
+                        <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{msg.text}</p>
+                      </motion.div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence>
           {error && (
             <motion.div
@@ -714,6 +915,34 @@ export default function App() {
                                             String(val)
                                           )}
 
+                                          {key === 'Uur' && (() => {
+                                            const [h, m] = String(val).split(':').map(Number);
+                                            const now = new Date();
+                                            const tripTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+                                            const diff = Math.floor((tripTime.getTime() - now.getTime()) / 60000);
+                                            
+                                            if (diff > 0 && diff < 60) {
+                                              return (
+                                                <span className={`ml-2 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
+                                                  isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+                                                }`}>
+                                                  {diff}m
+                                                </span>
+                                              );
+                                            }
+                                            return null;
+                                          })()}
+
+                                          {key === 'Uur' && (
+                                            <button
+                                              onClick={() => addToCalendar(row)}
+                                              className="ml-auto p-1 hover:bg-black/5 rounded transition-colors"
+                                              title="Toevoegen aan agenda"
+                                            >
+                                              <CalendarPlus className="w-3 h-3 opacity-50 hover:opacity-100" />
+                                            </button>
+                                          )}
+
                                           {isActive && key === 'Uur' && (
                                             <span className="ml-2 text-[8px] font-black bg-[#FFD200] text-black px-1.5 py-0.5 rounded uppercase tracking-tighter">
                                               Live
@@ -798,28 +1027,60 @@ export default function App() {
                                 ].map((field, idx) => (
                                   <div
                                     key={idx}
-                                    className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-black/5'} p-4 rounded-2xl shadow-sm border flex flex-col gap-1 transition-all hover:scale-[1.02]`}
+                                    className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-black/5'} p-4 rounded-2xl shadow-sm border flex flex-col gap-1 transition-all hover:scale-[1.02] relative group`}
                                   >
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                                      <field.icon className="w-3 h-3 opacity-50" />
-                                      {field.label}
-                                    </span>
-
-                                    <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
-                                      {field.label === 'PLAATS' ? (
-                                        <a
-                                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(field.value || '') + ' De Lijn')}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="hover:underline decoration-[#FFD200] decoration-2 underline-offset-4 flex items-center gap-1"
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                                        <field.icon className="w-3 h-3 opacity-50" />
+                                        {field.label}
+                                      </span>
+                                      {field.label === 'UUR' && (
+                                        <button
+                                          onClick={() => addToCalendar(row)}
+                                          className={`p-1.5 rounded-lg transition-all active:scale-90 opacity-0 group-hover:opacity-100 ${
+                                            isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+                                          }`}
+                                          title="Toevoegen aan agenda"
                                         >
-                                          {field.value || '-'}
-                                          <ExternalLink className="w-3 h-3 opacity-50" />
-                                        </a>
-                                      ) : (
-                                        field.value || '-'
+                                          <CalendarPlus className="w-3 h-3" />
+                                        </button>
                                       )}
-                                    </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                        {field.label === 'PLAATS' ? (
+                                          <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(field.value || '') + ' De Lijn')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="hover:underline decoration-[#FFD200] decoration-2 underline-offset-4 flex items-center gap-1"
+                                          >
+                                            {field.value || '-'}
+                                            <ExternalLink className="w-3 h-3 opacity-50" />
+                                          </a>
+                                        ) : (
+                                          field.value || '-'
+                                        )}
+                                      </span>
+                                      {field.label === 'UUR' && (() => {
+                                        const [h, m] = String(field.value).split(':').map(Number);
+                                        const now = new Date();
+                                        const tripTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+                                        const diff = Math.floor((tripTime.getTime() - now.getTime()) / 60000);
+                                        
+                                        if (diff > 0 && diff < 60) {
+                                          return (
+                                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
+                                              isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
+                                            }`}>
+                                              {diff}m
+                                            </span>
+                                          );
+                                        }
+                                        return null;
+                                      })()}
+                                    </div>
                                   </div>
                                 ))}
                               </div>
