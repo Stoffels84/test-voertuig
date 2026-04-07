@@ -30,7 +30,12 @@ import {
   Check,
   Bell,
   BellOff,
+  TrendingUp,
+  Coffee,
+  PartyPopper,
+  Zap,
 } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import { db } from './firebase';
 import { 
   doc, 
@@ -93,6 +98,7 @@ export default function App() {
   const [showMessageBoard, setShowMessageBoard] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifiedTrips, setNotifiedTrips] = useState<Set<string>>(new Set());
+  const [hasCelebrated, setHasCelebrated] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('notificationsEnabled');
@@ -195,6 +201,64 @@ export default function App() {
         .includes(s)
     );
   }, [data, searchTerm]);
+
+  const stats = useMemo(() => {
+    if (filteredData.length === 0) return null;
+
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const tripTimes = filteredData.map(row => {
+      const [h, m] = String(row.Uur).split(':').map(Number);
+      return h * 60 + m;
+    }).sort((a, b) => a - b);
+
+    const completed = filteredData.filter(row => {
+      const [h, m] = String(row.Uur).split(':').map(Number);
+      return (h * 60 + m) < nowMinutes;
+    }).length;
+
+    return {
+      total: filteredData.length,
+      completed,
+      remaining: filteredData.length - completed,
+      first: filteredData.find(row => {
+        const [h, m] = String(row.Uur).split(':').map(Number);
+        return (h * 60 + m) === tripTimes[0];
+      })?.Uur,
+      last: filteredData.find(row => {
+        const [h, m] = String(row.Uur).split(':').map(Number);
+        return (h * 60 + m) === tripTimes[tripTimes.length - 1];
+      })?.Uur,
+      progress: (completed / filteredData.length) * 100
+    };
+  }, [filteredData, currentTime]);
+
+  useEffect(() => {
+    if (stats && stats.total > 0 && stats.remaining === 0 && !hasCelebrated) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FFD200', '#000000', '#3B82F6']
+      });
+      setHasCelebrated(true);
+    }
+    if (stats && stats.remaining > 0) {
+      setHasCelebrated(false);
+    }
+  }, [stats?.remaining, hasCelebrated]);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    let prefix = 'Goedenavond';
+    if (hour < 6) prefix = 'Goedenacht';
+    else if (hour < 12) prefix = 'Goedemorgen';
+    else if (hour < 18) prefix = 'Goedemiddag';
+    
+    const name = filteredData[0]?.naam || filteredData[0]?.Naam || filteredData[0]?.NAAM || searchTerm || 'Chauffeur';
+    return `${prefix}, ${name}`;
+  }, [currentTime, filteredData, searchTerm]);
 
   useEffect(() => {
     if (!notificationsEnabled || filteredData.length === 0 || !('Notification' in window) || Notification.permission !== 'granted') return;
@@ -676,7 +740,79 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-6 sm:space-y-8">
+        {/* Dynamic Greeting & Stats Section */}
+        {filteredData.length > 0 && stats && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+          >
+            {/* Greeting Card */}
+            <div className={`md:col-span-2 p-6 rounded-3xl border flex flex-col justify-between relative overflow-hidden ${
+              isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-sm'
+            }`}>
+              <div className="relative z-10">
+                <h2 className={`text-2xl sm:text-3xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                  {greeting}! 👋
+                </h2>
+                <p className={`text-sm sm:text-base font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {stats.remaining === 0 
+                    ? "Alle dienststukken voor vandaag zijn voltooid. Goed gewerkt! 🎉" 
+                    : `Je hebt nog ${stats.remaining} dienststuk(ken) te gaan vandaag. Succes!`}
+                </p>
+              </div>
+              
+              <div className="mt-6 space-y-2">
+                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  <span>Dagvoortgang</span>
+                  <span>{Math.round(stats.progress)}%</span>
+                </div>
+                <div className={`h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-gray-100'}`}>
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${stats.progress}%` }}
+                    className="h-full bg-gradient-to-r from-blue-500 to-blue-400"
+                  />
+                </div>
+              </div>
+
+              {/* Decorative background element */}
+              <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-[0.03] ${isDarkMode ? 'text-white' : 'text-black'}`} />
+            </div>
+
+            {/* Quick Stats Card */}
+            <div className={`p-6 rounded-3xl border grid grid-cols-2 gap-4 ${
+              isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-sm'
+            }`}>
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <TrendingUp className="w-3 h-3" /> Totaal
+                </span>
+                <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.total}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Check className="w-3 h-3" /> Klaar
+                </span>
+                <p className={`text-2xl font-black text-blue-500`}>{stats.completed}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Clock className="w-3 h-3" /> Eerste
+                </span>
+                <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.first}</p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Coffee className="w-3 h-3" /> Laatste
+                </span>
+                <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.last}</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <AnimatePresence>
           {showMessageBoard && (
             <motion.div
