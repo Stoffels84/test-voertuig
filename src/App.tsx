@@ -497,8 +497,13 @@ export default function App() {
     window.open(googleUrl, '_blank');
   };
 
-  const copyShiftToClipboard = () => {
+  const copyShiftToClipboard = async () => {
     if (filteredData.length === 0) return;
+
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50);
+    }
 
     const dateStr = fileName ? formatFileDate(fileName.name) : new Date().toLocaleDateString('nl-BE');
     let text = `📋 *Dienstlijst van ${dateStr}*\n`;
@@ -515,15 +520,28 @@ export default function App() {
     text += `\n_Verzonden via Opzoeken Voertuig App_`;
 
     if (navigator.share) {
-      navigator.share({
-        title: `Dienstlijst ${searchTerm}`,
-        text: text,
-      }).catch(console.error);
+      try {
+        await navigator.share({
+          title: `Dienstlijst ${searchTerm}`,
+          text: text,
+        });
+      } catch (err) {
+        console.error('Share error:', err);
+        // Fallback to clipboard if share fails or is cancelled
+        copyToClipboardOnly(text);
+      }
     } else {
-      navigator.clipboard.writeText(text).then(() => {
-        setIsCopying(true);
-        setTimeout(() => setIsCopying(false), 2000);
-      });
+      copyToClipboardOnly(text);
+    }
+  };
+
+  const copyToClipboardOnly = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopying(true);
+      setTimeout(() => setIsCopying(false), 2000);
+    } catch (err) {
+      console.error('Clipboard error:', err);
     }
   };
 
@@ -723,6 +741,21 @@ export default function App() {
               <Wifi className={`w-5 h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
             </button>
 
+            <a
+              href="https://launchpad.delijn.be/flp?sap-client=100#MaintenanceNotification-zcreate"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md ${
+                isDarkMode 
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30' 
+                  : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
+              }`}
+              title="Defect Melden"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Defect Melden</span>
+            </a>
+
             <button
               onClick={fetchData}
               disabled={loading}
@@ -785,6 +818,23 @@ export default function App() {
                     className="h-full bg-gradient-to-r from-blue-500 to-blue-400"
                   />
                 </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a
+                  href="https://launchpad.delijn.be/flp?sap-client=100#MaintenanceNotification-zcreate"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border ${
+                    isDarkMode 
+                      ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20' 
+                      : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'
+                  }`}
+                >
+                  <AlertCircle className="w-3 h-3" />
+                  Defect Melden
+                </a>
               </div>
 
               {/* Decorative background element */}
@@ -1176,7 +1226,13 @@ export default function App() {
                                         }`}
                                       >
                                         {isActive && j === 0 && (
-                                          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
+                                          <>
+                                            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#FFD200] shadow-[4px_0_15px_rgba(255,210,0,0.4)] z-10" />
+                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                              <div className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                                              <div className="w-2 h-2 rounded-full bg-red-500 absolute" />
+                                            </div>
+                                          </>
                                         )}
 
                                         <div className="flex items-center gap-2">
