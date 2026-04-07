@@ -1,0 +1,46 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: stats
+// Document ID: visitors
+// Fields:
+//   - count: number (required) - The current visitor count
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidStat(data) {
+      return data.keys().hasOnly(['count']) && 
+             data.count is number && 
+             data.count >= 0;
+    }
+
+    // Visitor Counter
+    match /stats/visitors {
+      // Allow public reading of the visitor count
+      allow read: if true;
+      
+      // Allow initial creation if count is 1
+      allow create: if isValidStat(request.resource.data) && 
+                      request.resource.data.count == 1;
+      
+      // Allow incrementing the count by exactly 1
+      allow update: if isValidStat(request.resource.data) && 
+                      request.resource.data.count == resource.data.count + 1;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

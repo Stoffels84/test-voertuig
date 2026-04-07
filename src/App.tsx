@@ -21,7 +21,10 @@ import {
   LayoutGrid,
   Table as TableIcon,
   MapPin,
+  Eye,
 } from 'lucide-react';
+import { db } from './firebase';
+import { doc, onSnapshot, runTransaction, getDoc } from 'firebase/firestore';
 
 interface TransportData {
   [key: string]: any;
@@ -55,6 +58,7 @@ export default function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [visitorCount, setVisitorCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -208,6 +212,41 @@ export default function App() {
   useEffect(() => {
     fetchData();
     checkStatus();
+
+    // Visitor Counter Logic
+    const visitorDocRef = doc(db, 'stats', 'visitors');
+
+    const incrementCounter = async () => {
+      // Use sessionStorage to prevent multiple increments in the same session
+      const hasVisited = sessionStorage.getItem('hasVisited');
+      if (hasVisited) return;
+
+      try {
+        await runTransaction(db, async (transaction) => {
+          const visitorDoc = await transaction.get(visitorDocRef);
+          if (!visitorDoc.exists()) {
+            transaction.set(visitorDocRef, { count: 1 });
+          } else {
+            const newCount = (visitorDoc.data().count || 0) + 1;
+            transaction.update(visitorDocRef, { count: newCount });
+          }
+        });
+        sessionStorage.setItem('hasVisited', 'true');
+      } catch (err) {
+        console.error('Error incrementing visitor counter:', err);
+      }
+    };
+
+    incrementCounter();
+
+    // Listen for real-time updates
+    const unsubscribe = onSnapshot(visitorDocRef, (doc) => {
+      if (doc.exists()) {
+        setVisitorCount(doc.data().count);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const formatFileDate = (name: string) => {
@@ -329,6 +368,18 @@ export default function App() {
             >
               {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
+
+            {visitorCount !== null && (
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+                  isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-white/60 border-black/5 text-gray-600'
+                }`}
+                title="Totaal aantal bezoekers"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-black tracking-tight">{visitorCount}</span>
+              </div>
+            )}
 
             <div
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all shadow-sm ${

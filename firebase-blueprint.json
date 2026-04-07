@@ -1,0 +1,22 @@
+{
+  "entities": {
+    "Stat": {
+      "title": "Stat",
+      "description": "General statistics for the application",
+      "type": "object",
+      "properties": {
+        "count": {
+          "type": "number",
+          "description": "The current count value"
+        }
+      },
+      "required": ["count"]
+    }
+  },
+  "firestore": {
+    "/stats/visitors": {
+      "schema": "Stat",
+      "description": "Document tracking the total number of visitors"
+    }
+  }
+}
