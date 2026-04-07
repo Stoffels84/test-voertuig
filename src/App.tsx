@@ -26,6 +26,8 @@ import {
   Send,
   CalendarPlus,
   Timer,
+  Share2,
+  Check,
 } from 'lucide-react';
 import { db } from './firebase';
 import { 
@@ -81,6 +83,7 @@ export default function App() {
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [visitorCount, setVisitorCount] = useState<number | null>(null);
+  const [isCopying, setIsCopying] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [authorName, setAuthorName] = useState('');
@@ -125,7 +128,17 @@ export default function App() {
 
     try {
       setSearchTerm(localStorage.getItem('lastSearch') || '');
-      setIsDarkMode(localStorage.getItem('darkMode') === 'true');
+      
+      const savedDarkMode = localStorage.getItem('darkMode');
+      if (savedDarkMode !== null) {
+        setIsDarkMode(savedDarkMode === 'true');
+      } else {
+        // Auto dark mode: 18:00 to 07:00
+        const hour = new Date().getHours();
+        if (hour >= 18 || hour < 7) {
+          setIsDarkMode(true);
+        }
+      }
 
       const savedViewMode = localStorage.getItem('viewMode');
       setViewMode(savedViewMode === 'table' ? 'table' : 'cards');
@@ -335,6 +348,36 @@ export default function App() {
     const googleUrl = `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${formatTime(startDate)}/${formatTime(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
     
     window.open(googleUrl, '_blank');
+  };
+
+  const copyShiftToClipboard = () => {
+    if (filteredData.length === 0) return;
+
+    const dateStr = fileName ? formatFileDate(fileName.name) : new Date().toLocaleDateString('nl-BE');
+    let text = `📋 *Dienstlijst van ${dateStr}*\n`;
+    text += `👤 Personeelsnummer: ${searchTerm}\n\n`;
+
+    filteredData.forEach((row) => {
+      text += `🕒 ${row.Uur} | Lijn ${row.Lijn} (${row.richting || ''})\n`;
+      text += `📍 ${row.Plaats || ''}\n`;
+      text += `🚌 Voertuig: ${row.voertuig || ''} | Loop: ${row.Loop || ''}\n`;
+      if (row.wissel?.toLowerCase() === 'ja') text += `⚠️ WISSEL\n`;
+      text += `-------------------\n`;
+    });
+
+    text += `\n_Verzonden via Opzoeken Voertuig App_`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `Dienstlijst ${searchTerm}`,
+        text: text,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(text).then(() => {
+        setIsCopying(true);
+        setTimeout(() => setIsCopying(false), 2000);
+      });
+    }
   };
 
   const formatFileDate = (name: string) => {
@@ -815,28 +858,37 @@ export default function App() {
           ) : data.length > 0 ? (
             <>
               <section className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 px-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                      <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className={`text-base sm:text-xl font-black uppercase tracking-tight truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Dienstlijst voor "{searchTerm}"
+                      </h2>
+                      {fileName && (
+                        <p className="text-[8px] sm:text-[10px] font-bold text-gray-500 truncate">
+                          {formatFileDate(fileName.name)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={copyShiftToClipboard}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-sm border ${
+                      isDarkMode
+                        ? 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                        : 'bg-white text-black border-black/5 hover:bg-gray-50'
+                    }`}
+                  >
+                    {isCopying ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
+                    {isCopying ? 'Gekopieerd!' : 'Dienst Delen'}
+                  </button>
+                </div>
+
                 {viewMode === 'table' ? (
                   <>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 px-1">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#FFD200] rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                          <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-black" />
-                        </div>
-                        <div className="min-w-0">
-                          <h2 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
-                            Dienstlijst Vandaag voor "{searchTerm}"
-                          </h2>
-                          <div className="flex flex-col">
-                            {fileName && (
-                              <p className="text-[8px] sm:text-[10px] font-bold text-gray-500 truncate">
-                                {formatFileDate(fileName.name)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
                     <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
                       <div className="overflow-x-auto scrollbar-hide">
                         <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
