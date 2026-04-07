@@ -619,7 +619,7 @@ export default function App() {
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
-        isDarkMode ? 'bg-[#121212] text-gray-100' : 'bg-[#F8F9FA] text-gray-900'
+        isDarkMode ? 'bg-[#0A0A0B] text-gray-100' : 'bg-[#F4F6F8] text-gray-900'
       } font-sans pb-12`}
     >
       <AnimatePresence>
@@ -640,15 +640,15 @@ export default function App() {
 
       <header
         className={`${
-          isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-[#FFD200] border-black/5'
-        } shadow-lg border-b sticky top-0 z-50 safe-top transition-colors duration-300`}
+          isDarkMode ? 'bg-[#111113] border-white/5' : 'bg-[#FFD200] border-black/5'
+        } shadow-xl border-b sticky top-0 z-50 safe-top transition-colors duration-300`}
       >
-        <div className="max-w-7xl mx-auto px-4 h-20 sm:h-28 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
           <div className="flex items-center gap-3 max-w-[70%] sm:max-w-none">
-            <div className={`flex items-center gap-3 px-5 py-3 rounded-2xl border transition-all ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
-              <AlertCircle className={`w-5 h-5 sm:w-6 sm:h-6 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-              <p className={`text-[14px] sm:text-[18px] font-bold leading-tight ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
-                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> krijgt steeds voorrang op de diensten die hier zichtbaar zijn.
+            <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all skew-x-[-2deg] ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
+              <AlertCircle className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+              <p className={`text-[12px] sm:text-[15px] font-bold leading-tight skew-x-[2deg] ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
+                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> krijgt voorrang.
               </p>
             </div>
           </div>
@@ -792,82 +792,82 @@ export default function App() {
             className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
           >
             {/* Greeting Card */}
-            <div className={`md:col-span-2 p-6 rounded-3xl border flex flex-col justify-between relative overflow-hidden ${
+            <div className={`md:col-span-2 p-6 rounded-2xl border flex flex-col justify-between relative overflow-hidden skew-x-[-1deg] ${
               isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-sm'
             }`}>
-              <div className="relative z-10">
-                <h2 className={`text-2xl sm:text-3xl font-black tracking-tight mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              <div className="relative z-10 skew-x-[1deg]">
+                <h2 className={`text-2xl sm:text-4xl font-black tracking-tighter italic mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {greeting}! 👋
                 </h2>
-                <p className={`text-sm sm:text-base font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                <p className={`text-sm sm:text-lg font-medium opacity-80 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   {stats.remaining === 0 
-                    ? "Alle dienststukken voor vandaag zijn voltooid. Goed gewerkt! 🎉" 
-                    : `Je hebt nog ${stats.remaining} dienststuk(ken) te gaan vandaag. Succes!`}
+                    ? "Alle missies voltooid. Goed gewerkt! 🏁" 
+                    : `Nog ${stats.remaining} stukken op de teller. Gas erop! ⚡`}
                 </p>
               </div>
               
-              <div className="mt-6 space-y-2">
-                <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
-                  <span>Dagvoortgang</span>
-                  <span>{Math.round(stats.progress)}%</span>
+              <div className="mt-8 space-y-3 skew-x-[1deg]">
+                <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-blue-500">
+                  <span>Performance</span>
+                  <span className="font-mono">{Math.round(stats.progress)}%</span>
                 </div>
-                <div className={`h-3 rounded-full overflow-hidden ${isDarkMode ? 'bg-white/10' : 'bg-gray-100'}`}>
+                <div className={`h-4 rounded-sm overflow-hidden p-0.5 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${stats.progress}%` }}
-                    className="h-full bg-gradient-to-r from-blue-500 to-blue-400"
+                    className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-cyan-400 rounded-sm shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                   />
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-6 flex flex-wrap gap-2 skew-x-[1deg]">
                 <a
                   href="https://launchpad.delijn.be/flp?sap-client=100#MaintenanceNotification-zcreate"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 border ${
                     isDarkMode 
                       ? 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20' 
                       : 'bg-red-50 text-red-600 border-red-100 hover:bg-red-100'
                   }`}
                 >
-                  <AlertCircle className="w-3 h-3" />
+                  <AlertCircle className="w-3.5 h-3.5" />
                   Defect Melden
                 </a>
               </div>
 
               {/* Decorative background element */}
-              <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-[0.03] ${isDarkMode ? 'text-white' : 'text-black'}`} />
+              <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-[0.05] rotate-12 ${isDarkMode ? 'text-blue-500' : 'text-blue-200'}`} />
             </div>
 
             {/* Quick Stats Card */}
-            <div className={`p-6 rounded-3xl border grid grid-cols-2 gap-4 ${
+            <div className={`p-6 rounded-2xl border grid grid-cols-2 gap-6 skew-x-[-1deg] ${
               isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-sm'
             }`}>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <TrendingUp className="w-3 h-3" /> Totaal
+              <div className="space-y-1 skew-x-[1deg]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-blue-500" /> Totaal
                 </span>
-                <p className={`text-2xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.total}</p>
+                <p className={`text-3xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.total}</p>
               </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Check className="w-3 h-3" /> Klaar
+              <div className="space-y-1 skew-x-[1deg]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-green-500" /> Klaar
                 </span>
-                <p className={`text-2xl font-black text-blue-500`}>{stats.completed}</p>
+                <p className={`text-3xl font-black font-mono text-blue-500`}>{stats.completed}</p>
               </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Clock className="w-3 h-3" /> Eerste
+              <div className="space-y-1 skew-x-[1deg]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-yellow-500" /> Start
                 </span>
-                <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.first}</p>
+                <p className={`text-2xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.first}</p>
               </div>
-              <div className="space-y-1">
-                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Coffee className="w-3 h-3" /> Laatste
+              <div className="space-y-1 skew-x-[1deg]">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                  <Coffee className="w-3.5 h-3.5 text-purple-500" /> Einde
                 </span>
-                <p className={`text-xl font-black ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.last}</p>
+                <p className={`text-2xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.last}</p>
               </div>
             </div>
           </motion.div>
@@ -990,24 +990,16 @@ export default function App() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {connectionStatus && (
+          {connectionStatus && !connectionStatus.success && (
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className={`mb-4 p-3 sm:p-4 rounded-2xl flex items-center justify-between shadow-sm border ${
-                connectionStatus.success
-                  ? 'bg-white border-green-500/30 text-green-800'
-                  : 'bg-white border-red-500/30 text-red-800'
-              }`}
+              className="mb-4 p-3 sm:p-4 rounded-2xl flex items-center justify-between shadow-sm border bg-white border-red-500/30 text-red-800"
             >
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${connectionStatus.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                  {connectionStatus.success ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <XCircle className="w-4 h-4 text-red-600" />
-                  )}
+                <div className="p-2 rounded-full bg-red-100">
+                  <XCircle className="w-4 h-4 text-red-600" />
                 </div>
                 <span className="font-bold text-xs sm:text-sm">{connectionStatus.message}</span>
               </div>
@@ -1059,8 +1051,8 @@ export default function App() {
         </AnimatePresence>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-4">
-          <div className="relative group flex-1">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <div className="relative group flex-1 skew-x-[-1deg]">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none skew-x-[1deg]">
               <Search
                 className={`h-5 w-5 transition-colors ${
                   isDarkMode ? 'text-[#FFD200] group-focus-within:text-[#FFD200]' : 'text-gray-400 group-focus-within:text-[#FFD200]'
@@ -1072,21 +1064,21 @@ export default function App() {
               placeholder="Zoek op personeelnummer..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className={`block w-full pl-11 pr-4 py-3.5 border-2 rounded-2xl shadow-sm focus:ring-4 focus:ring-[#FFD200]/20 focus:border-[#FFD200] outline-none font-bold text-sm transition-all placeholder:font-medium ${
+              className={`block w-full pl-11 pr-4 py-3.5 border-2 rounded-lg shadow-xl focus:ring-4 focus:ring-[#FFD200]/20 focus:border-[#FFD200] outline-none font-black text-sm transition-all placeholder:font-medium skew-x-[1deg] ${
                 isDarkMode
-                  ? 'bg-[#1E1E1E] border-[#FFD200]/30 text-white placeholder:text-gray-600'
-                  : 'bg-white border-[#FFD200]/50 text-gray-900 placeholder:text-gray-400'
+                  ? 'bg-[#111113] border-white/10 text-white placeholder:text-gray-600'
+                  : 'bg-white border-black/10 text-gray-900 placeholder:text-gray-400'
               }`}
             />
           </div>
 
-          <div className={`flex p-1 rounded-2xl border ${isDarkMode ? 'bg-[#1E1E1E] border-white/10' : 'bg-white border-black/5'} shadow-sm`}>
+          <div className={`flex p-1 rounded-lg border skew-x-[-1deg] ${isDarkMode ? 'bg-[#111113] border-white/10' : 'bg-white border-black/5'} shadow-xl`}>
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-black uppercase tracking-[0.15em] transition-all skew-x-[1deg] ${
                 viewMode === 'table'
                   ? isDarkMode
-                    ? 'bg-[#FFD200] text-black'
+                    ? 'bg-[#FFD200] text-black shadow-[0_0_15px_rgba(255,210,0,0.3)]'
                     : 'bg-black text-white'
                   : isDarkMode
                   ? 'text-gray-500 hover:text-gray-300'
@@ -1098,10 +1090,10 @@ export default function App() {
             </button>
             <button
               onClick={() => setViewMode('cards')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-xs font-black uppercase tracking-[0.15em] transition-all skew-x-[1deg] ${
                 viewMode === 'cards'
                   ? isDarkMode
-                    ? 'bg-[#FFD200] text-black'
+                    ? 'bg-[#FFD200] text-black shadow-[0_0_15px_rgba(255,210,0,0.3)]'
                     : 'bg-black text-white'
                   : isDarkMode
                   ? 'text-gray-500 hover:text-gray-300'
@@ -1170,15 +1162,15 @@ export default function App() {
 
                 {viewMode === 'table' ? (
                   <>
-                    <div className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-2xl sm:rounded-3xl shadow-xl border overflow-hidden`}>
-                      <div className="overflow-x-auto scrollbar-hide">
+                    <div className={`${isDarkMode ? 'bg-[#111113] border-white/5' : 'bg-white border-black/5'} rounded-lg shadow-2xl border overflow-hidden skew-x-[-0.5deg]`}>
+                      <div className="overflow-x-auto scrollbar-hide skew-x-[0.5deg]">
                         <table className="w-full text-left border-collapse min-w-[800px] sm:min-w-full">
                           <thead>
                             <tr className={`${isDarkMode ? 'bg-white/5' : 'bg-gray-50/50'} border-b ${isDarkMode ? 'border-white/5' : 'border-black/5'}`}>
                               {data.length > 0 &&
                                 Object.keys(data[0]).map((key) => (
-                                  <th key={key} className="px-4 sm:px-6 py-4 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                    {key.toLowerCase() === 'wissel' ? 'VOERTUIGWISSEL' : key}
+                                  <th key={key} className="px-4 sm:px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">
+                                    {key.toLowerCase() === 'wissel' ? 'WISSEL' : key}
                                   </th>
                                 ))}
                             </tr>
@@ -1199,8 +1191,8 @@ export default function App() {
                                     className={`transition-all group relative ${
                                       isActive
                                         ? isDarkMode
-                                          ? 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_20px_rgba(255,210,0,0.3)] z-10'
-                                          : 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_20px_rgba(255,210,0,0.4)] z-10'
+                                          ? 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_30px_rgba(255,210,0,0.2)] z-10'
+                                          : 'bg-[#FFD200] text-black ring-2 ring-[#FFD200] shadow-[0_0_30px_rgba(255,210,0,0.3)] z-10'
                                         : isDarkMode
                                         ? 'hover:bg-white/5'
                                         : 'hover:bg-[#FFD200]/5 active:bg-[#FFD200]/10'
@@ -1215,6 +1207,8 @@ export default function App() {
                                             : isDarkMode
                                             ? 'text-gray-300 group-hover:text-white'
                                             : 'text-gray-700 group-hover:text-black'
+                                        } ${
+                                          key === 'Uur' ? 'font-mono' : ''
                                         } ${
                                           key === 'wissel' && String(val).toLowerCase() === 'ja'
                                             ? isActive
@@ -1338,30 +1332,30 @@ export default function App() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.05 }}
                             key={i}
-                            className="overflow-hidden shadow-xl"
+                            className="overflow-hidden shadow-2xl skew-x-[-0.5deg]"
                           >
                             <div
-                              className={`bg-[#FFD200] rounded-t-2xl p-4 flex items-center justify-between shadow-sm border-b border-black/10 ${
+                              className={`bg-[#FFD200] rounded-t-lg p-4 flex items-center justify-between shadow-sm border-b border-black/10 skew-x-[0.5deg] ${
                                 isActive ? 'ring-2 ring-inset ring-black/20' : ''
                               }`}
                             >
                               <div className="flex items-center gap-3 text-black">
                                 <Database className="w-5 h-5" />
                                 <h2 className="text-sm sm:text-base font-black uppercase tracking-tight">
-                                  Personeelsgegevens: {row.personeelnummer || searchTerm} {row.naam ? `- ${row.naam}` : ''}
+                                  Dienst: {row.personeelnummer || searchTerm} {row.naam ? `- ${row.naam}` : ''}
                                 </h2>
                               </div>
                               <div className="flex items-center gap-2">
                                 {isActive && (
-                                  <span className="bg-black text-[#FFD200] text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest animate-pulse">
-                                    Actieve Dienst
+                                  <span className="bg-black text-[#FFD200] text-[8px] font-black px-2 py-1 rounded-sm uppercase tracking-widest animate-pulse">
+                                    Live Performance
                                   </span>
                                 )}
                               </div>
                             </div>
 
                             <div
-                              className={`${isDarkMode ? 'bg-[#1E1E1E] border-white/5' : 'bg-white border-black/5'} rounded-b-2xl p-6 border border-t-0 ${
+                              className={`${isDarkMode ? 'bg-[#111113] border-white/5' : 'bg-white border-black/5'} rounded-b-lg p-6 border border-t-0 skew-x-[0.5deg] ${
                                 isActive ? 'ring-2 ring-[#FFD200]' : ''
                               }`}
                             >
@@ -1372,15 +1366,15 @@ export default function App() {
                                   { label: 'LIJN', value: row.Lijn, icon: Bus },
                                   { label: 'LOOP', value: row.Loop, icon: LayoutGrid },
                                   { label: 'VOERTUIG', value: row.voertuig, icon: Train },
-                                  { label: 'VOERTUIGWISSEL', value: row.wissel, icon: RefreshCw },
+                                  { label: 'WISSEL', value: row.wissel, icon: RefreshCw },
                                   { label: 'NAAM', value: row.naam, icon: User },
                                 ].map((field, idx) => (
                                   <div
                                     key={idx}
-                                    className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-black/5'} p-4 rounded-2xl shadow-sm border flex flex-col gap-1 transition-all hover:scale-[1.02] relative group`}
+                                    className={`${isDarkMode ? 'bg-white/5 border-white/5' : 'bg-gray-50 border-black/5'} p-4 rounded-lg shadow-sm border flex flex-col gap-1 transition-all hover:scale-[1.02] relative group`}
                                   >
                                     <div className="flex items-center justify-between">
-                                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
+                                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-500 flex items-center gap-1.5">
                                         <field.icon className="w-3 h-3 opacity-50" />
                                         {field.label}
                                       </span>
@@ -1398,7 +1392,7 @@ export default function App() {
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                      <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'}`}>
+                                      <span className={`text-sm font-bold truncate ${isDarkMode ? 'text-white' : 'text-black'} ${field.label === 'UUR' ? 'font-mono' : ''}`}>
                                         {field.label === 'PLAATS' ? (
                                           <a
                                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(String(field.value || '') + ' De Lijn')}`}
@@ -1432,7 +1426,7 @@ export default function App() {
                                         
                                         if (diff > 0 && diff < 60) {
                                           return (
-                                            <span className={`text-sm font-bold px-1.5 py-0.5 rounded uppercase tracking-tighter animate-pulse ${
+                                            <span className={`text-sm font-bold px-1.5 py-0.5 rounded-sm uppercase tracking-tighter animate-pulse font-mono ${
                                               isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-50 text-blue-600'
                                             }`}>
                                               {diff}m
