@@ -228,10 +228,20 @@ export default function App() {
       return (h * 60 + m) < nowMinutes;
     }).length;
 
+    const lastTripMinutes = tripTimes[tripTimes.length - 1];
+    const isLastTripStarted = nowMinutes >= lastTripMinutes;
+    const isFinished = nowMinutes >= lastTripMinutes + 240;
+
+    const rawRemaining = filteredData.length - completed;
+    const remaining = isFinished ? rawRemaining : Math.max(1, rawRemaining);
+    const progress = isFinished ? (completed / filteredData.length) * 100 : Math.min(99, (completed / filteredData.length) * 100);
+
     return {
       total: filteredData.length,
       completed,
-      remaining: filteredData.length - completed,
+      remaining,
+      isFinished,
+      isLastTripStarted,
       first: filteredData.find(row => {
         const [h, m] = String(row.Uur).split(':').map(Number);
         return (h * 60 + m) === tripTimes[0];
@@ -240,7 +250,7 @@ export default function App() {
         const [h, m] = String(row.Uur).split(':').map(Number);
         return (h * 60 + m) === tripTimes[tripTimes.length - 1];
       })?.Uur,
-      progress: (completed / filteredData.length) * 100
+      progress
     };
   }, [filteredData, currentTime]);
 
@@ -800,9 +810,11 @@ export default function App() {
                   {greeting}! 👋
                 </h2>
                 <p className={`text-sm sm:text-lg font-medium opacity-80 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                  {stats.remaining === 0 
+                  {stats.isFinished 
                     ? "Alle missies voltooid. Goed gewerkt! 🏁" 
-                    : `Nog ${stats.remaining} stukken op de teller. Gas erop! ⚡`}
+                    : stats.isLastTripStarted
+                      ? "Laatste missie is gestart. Bijna aan de finish! ⚡"
+                      : `Nog ${stats.remaining} stukken op de teller. Gas erop! ⚡`}
                 </p>
               </div>
               
