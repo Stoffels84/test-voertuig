@@ -98,6 +98,42 @@ export default function App() {
   const [showMessageBoard, setShowMessageBoard] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [notifiedTrips, setNotifiedTrips] = useState<Set<string>>(new Set());
+  const [weather, setWeather] = useState<{ condition: string; temp: string } | null>(null);
+  const [weatherImage, setWeatherImage] = useState<string>('');
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      try {
+        const response = await fetch('https://wttr.in/Gent?format=j1');
+        const data = await response.json();
+        const condition = data.current_condition[0].weatherDesc[0].value;
+        const temp = data.current_condition[0].temp_C;
+        setWeather({ condition, temp });
+        
+        const cond = condition.toLowerCase();
+        let keyword = 'sunny';
+        if (cond.includes('rain') || cond.includes('drizzle')) keyword = 'rainy';
+        else if (cond.includes('cloud') || cond.includes('overcast')) keyword = 'cloudy';
+        else if (cond.includes('snow') || cond.includes('ice')) keyword = 'snowy';
+        else if (cond.includes('fog') || cond.includes('mist')) keyword = 'foggy';
+        else if (cond.includes('thunder') || cond.includes('storm')) keyword = 'storm';
+        
+        const hour = new Date().getHours();
+        if (hour < 6 || hour > 21) keyword = 'night';
+
+        setWeatherImage(`https://picsum.photos/seed/gent_${keyword}/1920/1080`);
+      } catch (err) {
+        console.error('Weather fetch failed:', err);
+        const hour = new Date().getHours();
+        const keyword = (hour < 6 || hour > 21) ? 'night' : 'sunny';
+        setWeatherImage(`https://picsum.photos/seed/gent_${keyword}/1920/1080`);
+      }
+    };
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 1800000);
+    return () => clearInterval(interval);
+  }, []);
   const [hasCelebrated, setHasCelebrated] = useState(false);
 
   useEffect(() => {
@@ -630,9 +666,27 @@ export default function App() {
     <div
       className={`min-h-screen transition-colors duration-300 ${
         isDarkMode ? 'bg-[#0A0A0B] text-gray-100' : 'bg-[#F4F6F8] text-gray-900'
-      } font-sans pb-12`}
+      } font-sans pb-12 relative overflow-hidden`}
     >
-      <AnimatePresence>
+      {/* Weather Background Layer */}
+      {weatherImage && (
+        <div 
+          className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000"
+          style={{ opacity: isDarkMode ? 0.6 : 0.5 }}
+        >
+          <img 
+            src={weatherImage} 
+            alt="Weather Background" 
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
+          <div className={`absolute inset-0 ${isDarkMode ? 'bg-black/40' : 'bg-white/20'}`} />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20" />
+        </div>
+      )}
+
+      <div className="relative z-10">
+        <AnimatePresence>
         {!isOnline && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
@@ -653,52 +707,52 @@ export default function App() {
           isDarkMode ? 'bg-[#111113] border-white/5' : 'bg-[#FFD200] border-black/5'
         } shadow-xl border-b sticky top-0 z-50 safe-top transition-colors duration-300`}
       >
-        <div className="max-w-7xl mx-auto px-4 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 max-w-[70%] sm:max-w-none">
-            <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border transition-all skew-x-[-2deg] ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
-              <AlertCircle className={`w-4 h-4 sm:w-5 sm:h-5 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-              <p className={`text-[12px] sm:text-[15px] font-bold leading-tight skew-x-[2deg] ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
-                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> krijgt voorrang.
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-1 sm:gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className={`flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl border transition-all skew-x-[-2deg] ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
+              <AlertCircle className={`w-3.5 h-3.5 sm:w-5 sm:h-5 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
+              <p className={`text-[10px] sm:text-[15px] font-bold leading-tight skew-x-[2deg] ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
+                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> <span className="hidden xs:inline">krijgt voorrang.</span>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto no-scrollbar py-2">
             <button
               onClick={toggleNotifications}
-              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
+              className={`p-2 rounded-full transition-all active:scale-95 shadow-sm border shrink-0 ${
                 isDarkMode
                   ? `bg-white/10 ${notificationsEnabled ? 'text-[#FFD200]' : 'text-gray-400'} border-white/10 hover:bg-white/20`
                   : `bg-white/80 ${notificationsEnabled ? 'text-blue-600' : 'text-black'} border-black/5 hover:bg-white`
               }`}
               title={notificationsEnabled ? "Meldingen uitschakelen" : "Meldingen inschakelen (5 & 10 min voor vertrek)"}
             >
-              {notificationsEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+              {notificationsEnabled ? <Bell className="w-4 h-4 sm:w-5 sm:h-5" /> : <BellOff className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border ${
+              className={`p-2 rounded-full transition-all active:scale-95 shadow-sm border shrink-0 ${
                 isDarkMode
                   ? 'bg-white/10 text-[#FFD200] border-white/10 hover:bg-white/20'
                   : 'bg-white/80 text-black border-black/5 hover:bg-white'
               }`}
             >
-              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {isDarkMode ? <Sun className="w-4 h-4 sm:w-5 sm:h-5" /> : <Moon className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
 
             <button
               onClick={() => setShowMessageBoard(!showMessageBoard)}
-              className={`p-2.5 rounded-full transition-all active:scale-95 shadow-sm border relative ${
+              className={`p-2 rounded-full transition-all active:scale-95 shadow-sm border relative shrink-0 ${
                 isDarkMode
                   ? 'bg-white/10 text-white border-white/10 hover:bg-white/20'
                   : 'bg-white/80 text-black border-black/5 hover:bg-white'
               }`}
               title="Berichtenbord"
             >
-              <MessageSquare className="w-5 h-5" />
+              <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               {messages.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] sm:text-[10px] font-bold px-1 py-0.5 rounded-full border-2 border-white">
                   {messages.length}
                 </span>
               )}
@@ -706,7 +760,7 @@ export default function App() {
 
             {visitorCount !== null && (
               <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+                className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm shrink-0 ${
                   isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-white/60 border-black/5 text-gray-600'
                 }`}
                 title="Totaal aantal bezoekers"
@@ -716,13 +770,25 @@ export default function App() {
               </div>
             )}
 
+            {weather && (
+              <div
+                className={`hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all shadow-sm shrink-0 ${
+                  isDarkMode ? 'bg-white/5 border-white/10 text-gray-400' : 'bg-white/60 border-black/5 text-gray-600'
+                }`}
+                title={`Weer in Gent: ${weather.condition}`}
+              >
+                <span className="text-[11px] font-black tracking-tight">{weather.temp}°C</span>
+                <span className="text-[9px] font-bold uppercase opacity-60">{weather.condition}</span>
+              </div>
+            )}
+
             <div
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all shadow-sm ${
+              className={`flex items-center gap-1.5 px-2 py-1.5 rounded-full border transition-all shadow-sm shrink-0 ${
                 isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white/60 border-black/5'
               } ${connectionStatus?.success ? 'bg-green-500/10 border-green-500/20' : ''}`}
             >
               <div
-                className={`w-2 h-2 rounded-full ${
+                className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
                   connectionStatus?.success
                     ? 'bg-green-500 animate-pulse'
                     : connectionStatus
@@ -731,7 +797,7 @@ export default function App() {
                 }`}
               />
               <span
-                className={`text-[10px] font-black uppercase tracking-wider hidden xs:inline ${
+                className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider hidden lg:inline ${
                   isDarkMode ? 'text-gray-400' : 'text-black'
                 }`}
               >
@@ -742,20 +808,20 @@ export default function App() {
             <button
               onClick={checkStatus}
               disabled={statusLoading}
-              className={`p-2.5 rounded-full transition-all active:scale-95 disabled:opacity-50 shadow-sm border ${
+              className={`p-2 rounded-full transition-all active:scale-95 disabled:opacity-50 shadow-sm border shrink-0 ${
                 isDarkMode
                   ? 'bg-white/10 text-gray-400 border-white/10 hover:text-white'
                   : 'bg-white/80 text-black border-black/5 hover:bg-white'
               }`}
             >
-              <Wifi className={`w-5 h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
+              <Wifi className={`w-4 h-4 sm:w-5 sm:h-5 ${statusLoading ? 'animate-pulse' : ''}`} />
             </button>
 
             <a
               href="https://launchpad.delijn.be/flp?sap-client=100#MaintenanceNotification-zcreate"
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md ${
+              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md shrink-0 ${
                 isDarkMode 
                   ? 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30' 
                   : 'bg-red-50 text-red-600 border border-red-100 hover:bg-red-100'
@@ -763,30 +829,30 @@ export default function App() {
               title="Defect Melden"
             >
               <AlertCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Defect Melden</span>
+              <span className="hidden lg:inline">Defect Melden</span>
             </a>
 
             <button
               onClick={fetchData}
               disabled={loading}
-              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all disabled:opacity-50 shadow-md ${
+              className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all disabled:opacity-50 shadow-md shrink-0 ${
                 isDarkMode ? 'bg-[#FFD200] text-black hover:bg-[#FFE04D]' : 'bg-black text-white hover:bg-gray-800'
               }`}
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{loading ? 'Laden...' : 'Vernieuwen'}</span>
+              <span className="hidden lg:inline ml-2">Vernieuwen</span>
             </button>
 
             {showInstallButton && !isInstalled && (
               <button
                 onClick={handleInstallClick}
-                className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md ${
+                className={`flex items-center gap-2 p-2 sm:px-4 sm:py-2 rounded-full font-bold active:scale-95 transition-all shadow-md shrink-0 ${
                   isDarkMode ? 'bg-blue-500 text-white hover:bg-blue-600' : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
                 title="Installeer als App"
               >
                 <ExternalLink className="w-4 h-4" />
-                <span className="hidden sm:inline">Installeer App</span>
+                <span className="hidden lg:inline">Installeer App</span>
               </button>
             )}
           </div>
@@ -1491,6 +1557,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col items-center gap-4">
         </div>
       </footer>
+      </div>
     </div>
   );
 }
