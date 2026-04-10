@@ -104,34 +104,60 @@ export default function App() {
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        const response = await fetch('https://wttr.in/Gent?format=j1');
+        // Gebruik de interne API om CORS-problemen te voorkomen
+        const response = await fetch(`/api/weather?t=${Date.now()}`);
+        if (!response.ok) throw new Error('Weather API error');
         const data = await response.json();
         const condition = data.current_condition[0].weatherDesc[0].value;
         const temp = data.current_condition[0].temp_C;
         setWeather({ condition, temp });
         
         const cond = condition.toLowerCase();
-        let keyword = 'sunny';
-        if (cond.includes('rain') || cond.includes('drizzle')) keyword = 'rainy';
-        else if (cond.includes('cloud') || cond.includes('overcast')) keyword = 'cloudy';
-        else if (cond.includes('snow') || cond.includes('ice')) keyword = 'snowy';
-        else if (cond.includes('fog') || cond.includes('mist')) keyword = 'foggy';
-        else if (cond.includes('thunder') || cond.includes('storm')) keyword = 'storm';
-        
         const hour = new Date().getHours();
-        if (hour < 6 || hour > 21) keyword = 'night';
+        const isNight = hour < 6 || hour > 21;
+        
+        let keyword = 'sunny';
+        if (isNight) {
+          keyword = 'night';
+        } else if (cond.includes('thunder') || cond.includes('storm')) {
+          keyword = 'storm';
+        } else if (cond.includes('snow') || cond.includes('ice') || cond.includes('sleet')) {
+          keyword = 'snowy';
+        } else if (cond.includes('rain') || cond.includes('drizzle') || cond.includes('shower')) {
+          keyword = 'rainy';
+        } else if (cond.includes('fog') || cond.includes('mist') || cond.includes('haze')) {
+          keyword = 'foggy';
+        } else if (cond.includes('cloud') || cond.includes('overcast')) {
+          keyword = 'cloudy';
+        } else if (cond.includes('clear') || cond.includes('sun')) {
+          keyword = 'sunny';
+        }
 
-        setWeatherImage(`https://picsum.photos/seed/gent_${keyword}/1920/1080`);
+        // Curated high-quality weather images from Unsplash
+        const images: Record<string, string> = {
+          sunny: 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1920&q=80',
+          night: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1920&q=80',
+          cloudy: 'https://images.unsplash.com/photo-1483977399921-6cf349674824?auto=format&fit=crop&w=1920&q=80',
+          rainy: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1920&q=80',
+          snowy: 'https://images.unsplash.com/photo-1491002052546-bf38f186af56?auto=format&fit=crop&w=1920&q=80',
+          foggy: 'https://images.unsplash.com/photo-1487621167305-5d248087c724?auto=format&fit=crop&w=1920&q=80',
+          storm: 'https://images.unsplash.com/photo-1605727281914-509999176656?auto=format&fit=crop&w=1920&q=80',
+        };
+
+        setWeatherImage(images[keyword] || images.sunny);
       } catch (err) {
         console.error('Weather fetch failed:', err);
         const hour = new Date().getHours();
-        const keyword = (hour < 6 || hour > 21) ? 'night' : 'sunny';
-        setWeatherImage(`https://picsum.photos/seed/gent_${keyword}/1920/1080`);
+        const isNight = hour < 6 || hour > 21;
+        setWeatherImage(isNight 
+          ? 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=1920&q=80'
+          : 'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=1920&q=80'
+        );
       }
     };
 
     fetchWeather();
-    const interval = setInterval(fetchWeather, 1800000);
+    const interval = setInterval(fetchWeather, 600000); // Elke 10 minuten checken
     return () => clearInterval(interval);
   }, []);
   const [hasCelebrated, setHasCelebrated] = useState(false);

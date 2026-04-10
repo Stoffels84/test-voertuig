@@ -186,6 +186,19 @@ app.get("/api/data", async (req, res) => {
   }
 });
 
+// API endpoint to fetch weather data
+app.get("/api/weather", async (req, res) => {
+  try {
+    const response = await fetch("https://wttr.in/Gent?format=j1");
+    if (!response.ok) throw new Error("Weather API error");
+    const data = await response.json();
+    res.json(data);
+  } catch (err: any) {
+    console.error("Weather API Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Vite middleware for development
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
