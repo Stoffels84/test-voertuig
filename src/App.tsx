@@ -427,45 +427,62 @@ export default function App() {
     }
   }, [viewMode]);
 
-  const checkStatus = async () => {
+  const checkStatus = async (retries = 2) => {
     setStatusLoading(true);
-    try {
-      const response = await fetch('/api/status');
-      const result = await response.json();
-      setConnectionStatus(result);
-    } catch (err) {
-      console.error('Status error:', err);
-      setConnectionStatus({ success: false, message: 'Kon status niet ophalen' });
-    } finally {
-      setStatusLoading(false);
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch('/api/status');
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const result = await response.json();
+        setConnectionStatus(result);
+        setStatusLoading(false);
+        return;
+      } catch (err) {
+        console.error(`Status check attempt ${i + 1} failed:`, err);
+        if (i === retries - 1) {
+          setConnectionStatus({ success: false, message: 'Kon status niet ophalen' });
+        } else {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
     }
+    setStatusLoading(false);
   };
 
-  const fetchData = async () => {
+  const fetchData = async (retries = 3) => {
     setLoading(true);
     setError(null);
 
-    try {
-      const response = await fetch('/api/data');
-      const result = await response.json();
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch('/api/data');
+        if (!response.ok) throw new Error(`Server error: ${response.status}`);
+        const result = await response.json();
 
-      if (result?.success) {
-        setData(Array.isArray(result.data) ? result.data : []);
-        setFileName(result.fileName ?? null);
-        setIsMock(!!result.isMock);
+        if (result?.success) {
+          setData(Array.isArray(result.data) ? result.data : []);
+          setFileName(result.fileName ?? null);
+          setIsMock(!!result.isMock);
 
-        if (result.message && (!result.data || result.data.length === 0)) {
-          setError(result.message);
+          if (result.message && (!result.data || result.data.length === 0)) {
+            setError(result.message);
+          }
+          setLoading(false);
+          return; // Success, exit function
+        } else {
+          throw new Error(result?.error || 'Fout bij het ophalen van gegevens');
         }
-      } else {
-        setError(result?.error || 'Fout bij het ophalen van gegevens');
+      } catch (err) {
+        console.error(`Fetch data attempt ${i + 1} failed:`, err);
+        if (i === retries - 1) {
+          setError('Kon geen verbinding maken met de server. Probeer de pagina te vernieuwen.');
+        } else {
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
       }
-    } catch (err) {
-      console.error('Fetch data error:', err);
-      setError('Kon geen verbinding maken met de server');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {

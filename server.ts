@@ -1,4 +1,6 @@
 import express from "express";
+import fetch from "node-fetch";
+console.log("[Server] Starting up...");
 import { Client } from "basic-ftp";
 import * as XLSX from "xlsx";
 import { Writable } from "stream";
