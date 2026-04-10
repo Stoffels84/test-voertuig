@@ -980,13 +980,13 @@ export default function App() {
               </div>
               <div className="space-y-1 skew-x-[1deg]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-yellow-500" /> Start
+                  <Clock className="w-3.5 h-3.5 text-yellow-500" /> Start eerste dienststuk
                 </span>
                 <p className={`text-2xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.first}</p>
               </div>
               <div className="space-y-1 skew-x-[1deg]">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-                  <Coffee className="w-3.5 h-3.5 text-purple-500" /> Einde
+                  <Coffee className="w-3.5 h-3.5 text-purple-500" /> Start laatste dienststuk
                 </span>
                 <p className={`text-2xl font-black font-mono ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{stats.last}</p>
               </div>
