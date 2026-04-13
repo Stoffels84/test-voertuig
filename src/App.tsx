@@ -750,17 +750,8 @@ export default function App() {
           isDarkMode ? 'bg-[#111113] border-white/5' : 'bg-[#FFD200] border-black/5'
         } shadow-xl border-b sticky top-0 z-50 safe-top transition-colors duration-300`}
       >
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 h-16 sm:h-20 flex items-center justify-between gap-1 sm:gap-2">
-          <div className="flex items-center gap-2 shrink-0">
-            <div className={`flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl border transition-all skew-x-[-2deg] ${isDarkMode ? 'bg-white/5 border-white/10' : 'bg-white border-black/5 shadow-md'}`}>
-              <AlertCircle className={`w-3.5 h-3.5 sm:w-5 sm:h-5 shrink-0 ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`} />
-              <p className={`text-[10px] sm:text-[15px] font-bold leading-tight skew-x-[2deg] ${isDarkMode ? 'text-gray-400' : 'text-gray-700'}`}>
-                <span className={`font-black uppercase ${isDarkMode ? 'text-[#FFD200]' : 'text-black'}`}>Selfservice</span> <span className="hidden xs:inline">krijgt voorrang.</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto no-scrollbar py-2">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 h-16 sm:h-20 flex items-center">
+          <div className="flex items-center justify-between w-full gap-1 sm:gap-3 overflow-x-auto no-scrollbar py-2">
             <button
               onClick={toggleNotifications}
               className={`p-2 rounded-full transition-all active:scale-95 shadow-sm border shrink-0 ${
@@ -1152,6 +1143,19 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`mb-6 p-4 rounded-2xl border flex items-center gap-3 shadow-sm ${
+            isDarkMode ? 'bg-[#FFD200]/10 border-[#FFD200]/20 text-[#FFD200]' : 'bg-amber-50 border-amber-200 text-amber-900'
+          }`}
+        >
+          <div className="w-2 h-2 rounded-full bg-current animate-pulse shrink-0" />
+          <p className="text-xs font-black uppercase tracking-widest">
+            Selfservice heeft steeds voorrang
+          </p>
+        </motion.div>
 
         <AnimatePresence>
           {isMock && (
