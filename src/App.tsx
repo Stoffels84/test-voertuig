@@ -338,6 +338,8 @@ export default function App() {
     else if (hour < 12) prefix = 'Goedemorgen';
     else if (hour < 18) prefix = 'Goedemiddag';
     
+    if (!searchTerm.trim()) return 'Vul je personeelsnummer in';
+
     const name = filteredData[0]?.naam || filteredData[0]?.Naam || filteredData[0]?.NAAM || searchTerm || 'Chauffeur';
     return `${prefix}, ${name}`;
   }, [currentTime, filteredData, searchTerm]);
@@ -907,7 +909,7 @@ export default function App() {
             }`}>
               <div className="relative z-10 skew-x-[1deg]">
                 <h2 className={`text-2xl sm:text-4xl font-black tracking-tighter italic mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  {greeting}! 👋
+                  {greeting}{searchTerm.trim() ? '! 👋' : ''}
                 </h2>
                 <p className={`text-sm sm:text-lg font-medium opacity-80 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                   {stats.isFinished 
